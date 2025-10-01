@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'presentation/pages/splash_page.dart';
-import 'presentation/widgets/menu.dart';
 import 'presentation/pages/login_page.dart';
+// 💡 Importamos MainScreen, que contiene el Header y el Menú.
+import 'presentation/widgets/menu.dart'; 
 
 void main() {
   runApp(const MyApp());
@@ -16,9 +17,16 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Matriz Inmobiliaria',
       theme: ThemeData(primarySwatch: Colors.teal),
-      home: const SplashPage(),
+      
+      // ⚠️ Iniciamos en la pantalla de bienvenida
+      home: const SplashPage(), 
+      
+      // 💡 Definición de rutas:
       routes: {
         '/login': (context) => const LoginPage(),
+        
+        // ✅ AÑADIMOS la ruta principal que carga el MainScreen (el contenedor con el menú).
+        '/home': (context) => const MainScreen(),
       },
     );
   }
