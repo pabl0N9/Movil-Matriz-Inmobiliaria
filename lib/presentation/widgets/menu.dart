@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../pages/home_page.dart';
-import '../pages/citas_page.dart';
-import '../pages/reportes_page.dart';
-import 'header.dart';
+// Asegúrate de que estas páginas existan, aunque ahora son solo placeholders
+import '../pages/citas_page.dart'; 
+import '../pages/reportes_page.dart'; 
+import 'header.dart'; // Importamos el CustomHeader
 
 /// Pantalla principal con BottomNavigationBar
 class MainScreen extends StatefulWidget {
@@ -15,6 +16,14 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
+  // Lista de títulos para el Header (puedes ajustarlos)
+  final List<String> _pageTitles = const [
+    'Inicio',
+    'Mis Citas',
+    'Reportes',
+  ];
+
+  // Las páginas solo contienen el contenido, NO el Scaffold ni el Header.
   final List<Widget> _pages = const [
     HomePage(),
     CitasPage(),
@@ -28,8 +37,23 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomHeader(title: ""), // 👈 título vacío
-      body: _pages[_selectedIndex],
+      // ⚠️ El Scaffold principal NO tiene AppBar aquí, para usar el Header personalizado
+      
+      body: SafeArea(
+        child: Column( // Usamos Column para apilar el Header y el Contenido
+          children: [
+            // 💡 CustomHeader como primer elemento del body
+            CustomHeader(title: _pageTitles[_selectedIndex]), 
+
+            // 💡 Expanded para que la página seleccionada ocupe el espacio restante
+            Expanded(
+              child: _pages[_selectedIndex], // Carga la página actual (HomePage, CitasPage, etc.)
+            ),
+          ],
+        ),
+      ),
+
+      // Menú de navegación en la parte inferior
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,

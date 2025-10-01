@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-class CustomHeader extends StatelessWidget implements PreferredSizeWidget {
+// ⚠️ Se eliminó 'implements PreferredSizeWidget'
+class CustomHeader extends StatelessWidget {
   final String title;
 
   const CustomHeader({super.key, required this.title});
@@ -50,6 +51,5 @@ class CustomHeader extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  @override
-  Size get preferredSize => const Size.fromHeight(70);
+  // ⚠️ Se eliminó la implementación de preferredSize
 }

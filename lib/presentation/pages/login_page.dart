@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'register_page.dart';
 import '../../data/repositories/user_repository.dart'; // Asegúrate de importar tu repositorio
-import 'home_page.dart'; // Aquí debe ir tu pantalla principal
+// ⚠️ ELIMINAMOS la importación de home_page.dart.
+// import 'home_page.dart'; 
+// ✅ En su lugar, usaremos el nombre de la ruta '/home' que apunta a MainScreen.
+
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -28,6 +31,7 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
+    // Nota: Es mejor que UserRepository.login sea asíncrono y devuelva un Future.
     final logged = UserRepository.login(email, password);
 
     if (logged) {
@@ -38,11 +42,10 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
 
-      // Navegar al Home
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomePage()),
-      );
+      // ✅ CAMBIO CLAVE: Navegar a la ruta '/home' definida en main.dart.
+      // Esta ruta carga el widget MainScreen, que incluye el Header y el Menú.
+      Navigator.of(context).pushReplacementNamed('/home');
+      
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
