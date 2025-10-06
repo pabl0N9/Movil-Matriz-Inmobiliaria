@@ -56,8 +56,8 @@ class PropertyDetailScreen extends StatelessWidget {
             // Imagen principal
             Image.asset(
               'assets/images/casa1.jpg',
-              height: 240,
-              width: double.infinity,
+              height: 320,
+              width: 320,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) => Container(
                 height: 240,
