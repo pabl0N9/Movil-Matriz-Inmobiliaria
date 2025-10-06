@@ -1,12 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:movil_matrizinmobiliaria/presentation/pages/home_page.dart';
-import 'package:movil_matrizinmobiliaria/presentation/pages/reportes_page.dart';
-import 'presentation/pages/splash_page.dart';
-import 'presentation/pages/login_page.dart';
-// 💡 Importamos MainScreen, que contiene el Header y el Menú.
-import 'presentation/widgets/menu.dart'; 
+import 'package:flutter_citas_app/presentation/pages/citas_page.dart';
+import 'package:flutter_citas_app/presentation/pages/home_page.dart';
+import 'package:flutter_citas_app/presentation/pages/reportes_page.dart';
+import 'package:flutter_citas_app/presentation/pages/splash_page.dart';
+import 'package:flutter_citas_app/presentation/pages/login_page.dart';
 
-void main() {
+import 'package:flutter/services.dart';
+import 'package:intl/date_symbol_data_local.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Inicializar datos de localización para fechas en español
+  await initializeDateFormatting('es');
+
+  // Configurar orientación vertical
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
   runApp(const MyApp());
 }
 
@@ -19,18 +32,20 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Matriz Inmobiliaria',
       theme: ThemeData(primarySwatch: Colors.teal),
-      
+
       // ⚠️ Iniciamos en la pantalla de bienvenida
-      home: const SplashPage(), 
-      
+      home: const SplashPage(),
+
       // 💡 Definición de rutas:
       routes: {
         '/login': (context) => const LoginPage(),
-        
+
         // ✅ AÑADIMOS la ruta principal que carga el MainScreen (el contenedor con el menú).
         '/home': (context) => const TusInmueblesScreen(),
 
         '/reports': (context) => const ReportesPage(),
+
+        '/citas': (context) => const CitasPage(),
       },
     );
   }

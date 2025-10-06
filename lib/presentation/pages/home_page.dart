@@ -1,9 +1,27 @@
 import 'package:flutter/material.dart';
 import 'property_details.dart';
+import '../widgets/menu.dart';
+import '../widgets/header.dart';
 
-/// 📌 Pantalla que muestra la lista de inmuebles (sin menú)
-class TusInmueblesScreen extends StatelessWidget {
+/// 📌 Pantalla que muestra la lista de inmuebles con menú inferior
+class TusInmueblesScreen extends StatefulWidget {
   const TusInmueblesScreen({Key? key}) : super(key: key);
+
+  @override
+  State<TusInmueblesScreen> createState() => _TusInmueblesScreenState();
+}
+
+class _TusInmueblesScreenState extends State<TusInmueblesScreen> {
+  int _selectedIndex = 0;
+
+  void _onItemTapped(int index) {
+    setState(() => _selectedIndex = index);
+    if (index == 1) {
+      Navigator.pushNamed(context, '/citas');
+    } else if (index == 2) {
+      Navigator.pushNamed(context, '/reports');
+    }
+  }
 
   Widget _buildPropertyCard(
     BuildContext context, {
@@ -121,7 +139,7 @@ class TusInmueblesScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const PropertyDetailScreen(),
+                            builder: (context) => PropertyDetailScreen(imagePath: image),
                           ),
                         );
                       },
@@ -174,6 +192,7 @@ class TusInmueblesScreen extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
+            const CustomHeader(title: 'Inicio'),
             const SizedBox(height: 20),
             const Text(
               'Inmuebles',
@@ -188,7 +207,7 @@ class TusInmueblesScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 children: [
-                  // Fila 1
+                  // 🏡 Fila 1
                   Row(
                     children: [
                       Expanded(
@@ -208,7 +227,7 @@ class TusInmueblesScreen extends StatelessWidget {
                         child: _buildPropertyCard(
                           context,
                           image: 'assets/images/casa2.jpg',
-                          title: 'Apartamento Amoblado',
+                          title: 'Apartamento Moderno',
                           price: '\$2,300/mes',
                           area: '60 m²',
                           rooms: '2 hab',
@@ -220,7 +239,7 @@ class TusInmueblesScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
 
-                  // Fila 2
+                  // 🏠 Fila 2
                   Row(
                     children: [
                       Expanded(
@@ -239,7 +258,7 @@ class TusInmueblesScreen extends StatelessWidget {
                       Expanded(
                         child: _buildPropertyCard(
                           context,
-                          image: 'assets/images/casa3.jpg',
+                          image: 'assets/images/casa2.jpg',
                           title: 'Apartamento Moderno',
                           price: '\$2,800/mes',
                           area: '70 m²',
@@ -252,7 +271,7 @@ class TusInmueblesScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
 
-                  // Fila 3
+                  // 🏢 Fila 3
                   Row(
                     children: [
                       Expanded(
@@ -289,11 +308,31 @@ class TusInmueblesScreen extends StatelessWidget {
           ],
         ),
       ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        selectedItemColor: const Color.fromRGBO(0, 120, 206, 1),
+        unselectedItemColor: const Color.fromRGBO(97, 138, 133, 1),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Inicio',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today),
+            label: 'Citas',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.build),
+            label: 'Reportes',
+          ),
+        ],
+      ),
     );
   }
 }
 
-/// 🌟 Widget que agrega animación de hover (selección al pasar el cursor)
+/// 🌟 Animación de hover (al pasar el cursor sobre la carta)
 class _HoverCard extends StatefulWidget {
   final Widget child;
   const _HoverCard({required this.child});
@@ -315,6 +354,7 @@ class _HoverCardState extends State<_HoverCard> {
         curve: Curves.easeInOut,
         transform: _isHovered ? (Matrix4.identity()..scale(1.03)) : Matrix4.identity(),
         decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
           boxShadow: _isHovered
               ? [
                   BoxShadow(

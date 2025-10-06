@@ -3,6 +3,8 @@ import '../../data/models/reporte_model.dart';
 import '../../data/repositories/reporte_repository.dart';
 import 'nuevo_reporte_page.dart';
 import 'detalle_reporte_page.dart';
+import '../widgets/menu.dart';
+import '../widgets/header.dart';
 
 class ReportesPage extends StatefulWidget {
   const ReportesPage({super.key});
@@ -12,6 +14,17 @@ class ReportesPage extends StatefulWidget {
 }
 
 class _ReportesPageState extends State<ReportesPage> {
+  int _selectedIndex = 2;
+
+  void _onItemTapped(int index) {
+    setState(() => _selectedIndex = index);
+    if (index == 0) {
+      Navigator.pushNamed(context, '/home');
+    } else if (index == 1) {
+      Navigator.pushNamed(context, '/citas');
+    }
+  }
+
   String searchQuery = '';
   String selectedEstado = 'Todos';
   String selectedTipo = 'Todos';
@@ -82,9 +95,10 @@ class _ReportesPageState extends State<ReportesPage> {
       backgroundColor: Colors.grey[50],
       body: Column(
         children: [
+          const CustomHeader(title: 'Reportes'),
           // Header con búsqueda (sin título duplicado)
           Container(
-            padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
             color: Colors.white,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -174,7 +188,7 @@ class _ReportesPageState extends State<ReportesPage> {
             context,
             MaterialPageRoute(builder: (context) => const NuevoReportePage()),
           );
-          
+
           // Si se creó un reporte exitosamente, refrescar la lista
           if (result == true) {
             setState(() {
@@ -185,6 +199,26 @@ class _ReportesPageState extends State<ReportesPage> {
         backgroundColor: const Color(0xFF0078CE), // Nuevo color
         foregroundColor: Colors.white,
         child: const Icon(Icons.add),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        selectedItemColor: const Color.fromRGBO(0, 120, 206, 1),
+        unselectedItemColor: const Color.fromRGBO(97, 138, 133, 1),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Inicio',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today),
+            label: 'Citas',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.build),
+            label: 'Reportes',
+          ),
+        ],
       ),
     );
   }

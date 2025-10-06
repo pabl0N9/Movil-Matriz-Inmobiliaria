@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 class PropertyDetailScreen extends StatelessWidget {
-  const PropertyDetailScreen({Key? key}) : super(key: key);
+  final String imagePath; // ✅ Recibe la imagen desde la carta
+
+  const PropertyDetailScreen({Key? key, required this.imagePath}) : super(key: key);
 
   Widget _buildStatItem(IconData icon, String title, String value) {
     return Column(
@@ -53,17 +55,16 @@ class PropertyDetailScreen extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Imagen principal
+            // ✅ Imagen dinámica recibida desde la carta
             Image.asset(
-              'assets/images/casa1.jpg',
+              imagePath,
               height: 320,
-              width: 320,
+              width: double.infinity,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) => Container(
                 height: 240,
                 color: Colors.grey[300],
-                child:
-                    const Icon(Icons.home, size: 80, color: Colors.grey),
+                child: const Icon(Icons.home, size: 80, color: Colors.grey),
               ),
             ),
 
@@ -91,13 +92,11 @@ class PropertyDetailScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
 
-                  // Estadísticas del inmueble
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       _buildStatItem(Icons.home_outlined, 'Área', '96 m²'),
-                      _buildStatItem(Icons.door_back_door_outlined,
-                          'Habitaciones', '3'),
+                      _buildStatItem(Icons.door_back_door_outlined, 'Habitaciones', '3'),
                       _buildStatItem(Icons.bathtub_outlined, 'Baños', '2'),
                     ],
                   ),
@@ -105,12 +104,9 @@ class PropertyDetailScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildStatItem(Icons.directions_car_outlined,
-                          'Parqueaderos', '1'),
-                      _buildStatItem(
-                          Icons.schedule_outlined, 'Antigüedad', '5 años'),
-                      _buildStatItem(Icons.account_balance_outlined, 'Tipo',
-                          'Apartamento'),
+                      _buildStatItem(Icons.directions_car_outlined, 'Parqueaderos', '1'),
+                      _buildStatItem(Icons.schedule_outlined, 'Antigüedad', '5 años'),
+                      _buildStatItem(Icons.account_balance_outlined, 'Tipo', 'Apartamento'),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -157,13 +153,10 @@ class PropertyDetailScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 30),
 
-                  // Botón inferior
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
+                      onPressed: () => Navigator.pop(context),
                       icon: const Icon(Icons.arrow_back),
                       label: const Text(
                         'Volver a tus inmuebles',
@@ -173,10 +166,8 @@ class PropertyDetailScreen extends StatelessWidget {
                             color: Colors.white),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            const Color.fromRGBO(0, 120, 206, 1),
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 14),
+                        backgroundColor: const Color.fromRGBO(0, 120, 206, 1),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(6),
                         ),
