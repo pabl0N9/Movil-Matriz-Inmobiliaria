@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:movil_matrizinmobiliaria/presentation/pages/home_page.dart';
+import 'package:movil_matrizinmobiliaria/presentation/pages/reportes_page.dart';
 import 'presentation/pages/splash_page.dart';
 import 'presentation/pages/login_page.dart';
 // 💡 Importamos MainScreen, que contiene el Header y el Menú.
@@ -28,6 +29,8 @@ class MyApp extends StatelessWidget {
         
         // ✅ AÑADIMOS la ruta principal que carga el MainScreen (el contenedor con el menú).
         '/home': (context) => const TusInmueblesScreen(),
+
+        '/reports': (context) => const ReportesPage(),
       },
     );
   }
