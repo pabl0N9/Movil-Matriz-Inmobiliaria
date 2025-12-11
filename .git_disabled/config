@@ -1,0 +1,14 @@
+[core]
+	repositoryformatversion = 0
+	filemode = false
+	bare = false
+	logallrefupdates = true
+	symlinks = false
+	ignorecase = true
+[remote "origin"]
+	url = https://github.com/pabl0N9/Movil-Matriz-Inmobiliaria.git
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "Pepi"]
+	remote = origin
+	merge = refs/heads/Pepi
+	vscode-merge-base = origin/main
