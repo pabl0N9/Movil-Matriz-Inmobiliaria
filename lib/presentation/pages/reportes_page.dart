@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
-import '../../data/models/reporte_model.dart';
-import '../../data/repositories/reporte_repository.dart';
-import 'nuevo_reporte_page.dart';
-import 'detalle_reporte_page.dart';
+import '../../models/reporte_model.dart';
+import '../../services/reportes_service.dart';
+import '../widgets/reportes/estadisticas_reportes_cards.dart';
+import '../widgets/reportes/barra_busqueda_reportes.dart';
+import '../widgets/reportes/filtros_estado_chips.dart';
+import '../widgets/reportes/reporte_card.dart';
+import '../widgets/reportes/detalle_reporte_dialog.dart';
 
+/// Página principal de reportes para propietarios
+/// Permite consultar el estado y seguimiento de reportes de mantenimiento
 class ReportesPage extends StatefulWidget {
   const ReportesPage({super.key});
 
@@ -12,384 +17,249 @@ class ReportesPage extends StatefulWidget {
 }
 
 class _ReportesPageState extends State<ReportesPage> {
-  String searchQuery = '';
-  String selectedEstado = 'Todos';
-  String selectedTipo = 'Todos';
-  String selectedPrioridad = 'Todos';
+  // Servicio de reportes
+  final ReportesService _reportesService = ReportesService();
 
-  final List<String> estados = ['Todos', 'En proceso', 'Cotizando', 'Iniciado', 'Sin novedades', 'Pendiente', 'Completado'];
-  final List<String> tipos = ['Todos', 'Casa', 'Apartamento', 'Edificio', 'Local Comercial', 'Oficina', 'Bodega', 'Terreno'];
-  final List<String> prioridades = ['Todos', 'Alta', 'Media', 'Baja'];
+  // Controlador de búsqueda
+  final TextEditingController _busquedaController = TextEditingController();
 
+  // Estado de la página
+  List<Reporte> _todosLosReportes = [];
+  List<Reporte> _reportesFiltrados = [];
+  Map<EstadoReporte, int> _estadisticas = {};
+  int _totalSeguimientos = 0;
+  double _progresoPromedio = 0.0;
 
+  // Filtros
+  EstadoReporte? _estadoFiltro;
 
-  String _getPrioridad(dynamic reporte) {
-    // Calculamos prioridad basada en el estado
-    switch (reporte.estado.toLowerCase()) {
-      case 'pendiente':
-      case 'sin novedades':
-        return 'Alta';
-      case 'en proceso':
-      case 'iniciado':
-        return 'Media';
-      default:
-        return 'Baja';
+  // Estado de carga
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarReportes();
+  }
+
+  @override
+  void dispose() {
+    _busquedaController.dispose();
+    super.dispose();
+  }
+
+  /// Carga los reportes desde el servicio
+  Future<void> _cargarReportes() async {
+    setState(() => _isLoading = true);
+
+    try {
+      // Cargar datos en paralelo
+      final reportes = await _reportesService.obtenerReportes();
+      final estadisticas = await _reportesService.obtenerEstadisticas();
+      final totalSeguimientos = await _reportesService.obtenerTotalSeguimientos();
+      final progresoPromedio = await _reportesService.obtenerProgresoPromedio();
+
+      setState(() {
+        _todosLosReportes = reportes;
+        _reportesFiltrados = reportes;
+        _estadisticas = estadisticas;
+        _totalSeguimientos = totalSeguimientos;
+        _progresoPromedio = progresoPromedio;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar reportes: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
-  List<dynamic> get filteredReportes {
-    final allReportes = ReporteRepository.getAllReportes();
-    
-    return allReportes.where((reporte) {
-      bool matchesEstado = selectedEstado == 'Todos' || reporte.estado == selectedEstado;
+  /// Aplica los filtros de búsqueda y estado
+  void _aplicarFiltros() {
+    setState(() {
+      _reportesFiltrados = _todosLosReportes.where((reporte) {
+        // Filtro por estado
+        if (_estadoFiltro != null && reporte.estado != _estadoFiltro) {
+          return false;
+        }
 
+        // Filtro por búsqueda
+        if (_busquedaController.text.isNotEmpty) {
+          final query = _busquedaController.text.toLowerCase();
+          return reporte.id.toLowerCase().contains(query) ||
+              reporte.ubicacion.toLowerCase().contains(query) ||
+              reporte.tipoInmueble.toLowerCase().contains(query) ||
+              reporte.propietario.toLowerCase().contains(query) ||
+              reporte.tipoReporte.toLowerCase().contains(query) ||
+              reporte.responsable.toLowerCase().contains(query) ||
+              reporte.referencia.toLowerCase().contains(query) ||
+              reporte.descripcion.toLowerCase().contains(query);
+        }
 
-      bool matchesTipo = selectedTipo == 'Todos' || reporte.tipoInmueble == selectedTipo;
-      bool matchesPrioridad = selectedPrioridad == 'Todos' || _getPrioridad(reporte) == selectedPrioridad;
-      bool matchesSearch = searchQuery.isEmpty || 
-          (reporte.id != null && reporte.id!.toLowerCase().contains(searchQuery.toLowerCase())) ||
-          reporte.titulo.toLowerCase().contains(searchQuery.toLowerCase()) ||
-          reporte.ubicacion.toLowerCase().contains(searchQuery.toLowerCase());
-      
-      return matchesEstado && matchesTipo && matchesPrioridad && matchesSearch;
-    }).toList();
+        return true;
+      }).toList();
+    });
   }
 
-  Color getEstadoColor(String estado) {
-    switch (estado) {
-      case 'En proceso':
-        return const Color(0xFF0078CE); // Nuevo color
-      case 'Cotizando':
-        return Colors.orange;
-      case 'Iniciado':
-        return Colors.green;
-      case 'Sin novedades':
-        return Colors.grey;
-      case 'Pendiente':
-        return Colors.red;
-      case 'Completado':
-        return Colors.teal;
-      default:
-        return Colors.grey;
-    }
+  /// Muestra el modal de detalle de un reporte
+  void _mostrarDetalleReporte(Reporte reporte) {
+    showDialog(
+      context: context,
+      builder: (context) => DetalleReporteDialog(reporte: reporte),
+    );
   }
-
-
 
   @override
   Widget build(BuildContext context) {
+    // Gradiente dinámico según hora del día (similar a citas_page.dart)
+    final hour = DateTime.now().hour;
+    final isMorning = hour >= 6 && hour < 12;
+    final isAfternoon = hour >= 12 && hour < 18;
+
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      body: Column(
-        children: [
-          // Header con búsqueda (sin título duplicado)
-          Container(
-            padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
-            color: Colors.white,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                
-                // Barra de búsqueda
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: TextField(
-                    onChanged: (value) {
-                      setState(() {
-                        searchQuery = value;
-                      });
-                    },
-                    decoration: const InputDecoration(
-                      hintText: 'Buscar reportes...',
-                      prefixIcon: Icon(Icons.search, color: Colors.grey),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 15),
-                
-                // Filtros
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _buildFilterChip('Estado', selectedEstado, estados, (value) {
-                        setState(() {
-                          selectedEstado = value;
-                        });
-                      }),
-                      const SizedBox(width: 10),
-                      _buildFilterChip('Tipo', selectedTipo, tipos, (value) {
-                        setState(() {
-                          selectedTipo = value;
-                        });
-                      }),
-                      const SizedBox(width: 10),
-                      _buildFilterChip('Prioridad', selectedPrioridad, prioridades, (value) {
-                        setState(() {
-                          selectedPrioridad = value;
-                        });
-                      }),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Lista de reportes
-          Expanded(
-            child: filteredReportes.isEmpty
-                ? const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.description_outlined, size: 64, color: Colors.grey),
-                        SizedBox(height: 16),
-                        Text(
-                          'No hay reportes disponibles',
-                          style: TextStyle(fontSize: 18, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(20),
-                    itemCount: filteredReportes.length,
-                    itemBuilder: (context, index) {
-                      return _buildReporteCard(filteredReportes[index]);
-                    },
-                  ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const NuevoReportePage()),
-          );
-          
-          // Si se creó un reporte exitosamente, refrescar la lista
-          if (result == true) {
-            setState(() {
-              // Esto forzará la reconstrucción del widget y actualizará la lista
-            });
-          }
-        },
-        backgroundColor: const Color(0xFF0078CE), // Nuevo color
-        foregroundColor: Colors.white,
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-
-  Widget _buildFilterChip(String label, String selectedValue, List<String> options, Function(String) onChanged) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: selectedValue,
-          items: options.map((String value) {
-            return DropdownMenuItem<String>(
-              value: value,
-              child: Text(
-                '$label: $value',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: value == 'Todos' ? Colors.grey[600] : const Color(0xFF0078CE), // Nuevo color
-                  fontWeight: value == 'Todos' ? FontWeight.normal : FontWeight.w500,
-                ),
-              ),
-            );
-          }).toList(),
-          onChanged: (String? newValue) {
-            if (newValue != null) {
-              onChanged(newValue);
-            }
-          },
-          icon: const Icon(Icons.arrow_drop_down, size: 20),
-          style: const TextStyle(fontSize: 12),
-          isDense: true,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildReporteCard(Reporte reporte) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => DetalleReportePage(reporte: reporte),
-          ),
-        );
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
+      body: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: isMorning
+                ? [const Color(0xFFE3F2FD), const Color(0xFFF5F5F5)] // Azul claro mañana
+                : isAfternoon
+                    ? [const Color(0xFFFFF8E1), const Color(0xFFF5F5F5)] // Amarillo claro tarde
+                    : [const Color(0xFFE8EAF6), const Color(0xFFF5F5F5)], // Púrpura claro noche
+          ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              // Imagen placeholder
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(8),
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFF0A4B84),
                 ),
-                child: const Icon(
-                  Icons.image,
-                  color: Colors.grey,
-                  size: 30,
-                ),
-              ),
-              const SizedBox(width: 16),
-              
-              // Información del reporte
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ID y Estado
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'ID: ${reporte.id}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                            fontWeight: FontWeight.w500,
+              )
+            : RefreshIndicator(
+                onRefresh: _cargarReportes,
+                color: const Color(0xFF0A4B84),
+                child: CustomScrollView(
+                  slivers: [
+                    // App Bar
+                    SliverAppBar(
+                      expandedHeight: 120,
+                      floating: false,
+                      pinned: true,
+                      backgroundColor: const Color(0xFF0A4B84),
+                      flexibleSpace: FlexibleSpaceBar(
+                        title: const Text(
+                          'Mis Reportes',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: getEstadoColor(reporte.estado).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: getEstadoColor(reporte.estado).withOpacity(0.3),
-                            ),
-                          ),
-                          child: Text(
-                            reporte.estado,
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: getEstadoColor(reporte.estado),
-                              fontWeight: FontWeight.w600,
+                        background: Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Color(0xFF0A4B84),
+                                Color(0xFF0D5FA3),
+                              ],
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    
-                    // Título
-                    Text(
-                      reporte.titulo,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
-                    
-                    // Ubicación
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on, size: 14, color: Colors.grey),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            reporte.ubicacion,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+
+                    // Contenido
+                    SliverToBoxAdapter(
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 16),
+
+                          // Tarjetas de estadísticas
+                          EstadisticasReportesCards(
+                            estadisticas: _estadisticas,
+                            total: _todosLosReportes.length,
+                            totalSeguimientos: _totalSeguimientos,
+                            progresoPromedio: _progresoPromedio,
+                            onEstadoTap: (estado) {
+                              setState(() {
+                                _estadoFiltro = estado;
+                                _aplicarFiltros();
+                              });
+                            },
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    
-                    // Tipo de inmueble
-                    Row(
-                      children: [
-                        const Icon(Icons.home, size: 14, color: Colors.grey),
-                        const SizedBox(width: 4),
-                        Text(
-                          reporte.tipoInmueble,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
+
+                          const SizedBox(height: 16),
+
+                          // Barra de búsqueda
+                          BarraBusquedaReportes(
+                            controller: _busquedaController,
+                            onChanged: (value) => _aplicarFiltros(),
+                            onClear: () {
+                              setState(() => _aplicarFiltros());
+                            },
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    
-                    // Responsable y resumen de rubros
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Responsable: ${reporte.responsable}',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+
+                          const SizedBox(height: 8),
+
+                          // Filtros por estado
+                          FiltrosEstadoChips(
+                            estadoSeleccionado: _estadoFiltro,
+                            onEstadoSeleccionado: (estado) {
+                              setState(() {
+                                _estadoFiltro = estado;
+                                _aplicarFiltros();
+                              });
+                            },
                           ),
-                        ),
-                        Text(
-                          '${reporte.rubrosCompletados}/${reporte.rubros.length} rubros',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: const Color(0xFF0078CE), // Nuevo color
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+
+                          const SizedBox(height: 8),
+
+                          // Lista de reportes
+                          if (_reportesFiltrados.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.all(32.0),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    Icons.search_off,
+                                    size: 64,
+                                    color: Colors.grey.shade400,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'No se encontraron reportes',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            ...(_reportesFiltrados.map((reporte) {
+                              return ReporteCard(
+                                reporte: reporte,
+                                onTap: () => _mostrarDetalleReporte(reporte),
+                              );
+                            })),
+
+                          const SizedBox(height: 80),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
-        ),
       ),
     );
   }
 }
+
