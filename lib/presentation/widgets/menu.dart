@@ -25,7 +25,7 @@ class _MainScreenState extends State<MainScreen> {
 
   // Las páginas solo contienen el contenido, NO el Scaffold ni el Header.
   final List<Widget> _pages = const [
-    HomePage(),
+    TusInmueblesScreen(),
     CitasPage(),
     ReportesPage(),
   ];
