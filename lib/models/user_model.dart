@@ -88,6 +88,8 @@ class User {
   }
 
   // Helpers para obtener texto legible
+  int get idPersona => id;
+
   String get nombreCompletoTexto => '$nombreCompleto $apellidoCompleto'.trim();
 
   String get rolesTexto => roles.join(', ');
@@ -97,6 +99,8 @@ class User {
   bool get esEmpleado => roles.contains('Empleado');
 
   bool get puedeVerCitas => permisos['gCitas']?['ver'] == true || esSuperAdmin;
+
+  bool get esPropietario => roles.contains('Propietario') || roles.contains('propietario');
 
   String get telefonoSeguro => telefono ?? '';
   String get correoSeguro => correo ?? email;

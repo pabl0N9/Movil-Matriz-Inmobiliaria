@@ -1,248 +1,126 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/browser_client.dart' show BrowserClient;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/reporte_model.dart';
+import '../models/user_model.dart';
 
 /// Servicio para gestionar los reportes del propietario
-/// Actualmente utiliza datos simulados, pero está preparado para integración con API REST
 class ReportesService {
-  // Simulación de delay de red
-  Future<void> _simulateNetworkDelay() async {
-    await Future.delayed(const Duration(milliseconds: 500));
+  static const String baseUrl = 'http://localhost:5000/api/v1';
+  static const String reportesEndpoint = '/reportes-inmobiliarios';
+
+  http.Client _client() {
+    if (kIsWeb) {
+      final c = BrowserClient();
+      c.withCredentials = true;
+      return c;
+    }
+    return http.Client();
   }
 
-  /// Obtiene todos los reportes del propietario actual
-  /// En producción, este método haría una petición GET al backend
-  Future<List<Reporte>> obtenerReportes() async {
-    await _simulateNetworkDelay();
+  // Singleton
+  static final ReportesService _instance = ReportesService._internal();
+  factory ReportesService() => _instance;
+  ReportesService._internal();
 
-    // Datos de ejemplo basados en OwnerReportsPage.jsx
-    return [
-      Reporte(
-        id: 'R-001',
-        ubicacion: 'Medellín, Laureles',
-        tipoInmueble: 'Apartamento',
-        propietario: 'Dario Jaramillo',
-        tipoReporte: 'Reparación baño',
-        fecha: DateTime(2025, 5, 20),
-        estado: EstadoReporte.enProgreso,
-        responsable: 'Juan Pérez',
-        referencia: 'AP-9012',
-        descripcion:
-            'Filtración en el baño principal que requiere revisión y reparación del sello.',
-        seguimientoGeneral:
-            'Se ha iniciado la evaluación del daño. Pendiente cotización de materiales.',
-        rubros: [
-          RubroReporte(
-            id: 'RB-1',
-            nombre: 'Fontanería',
-            activo: true,
-            valorTotal: 250000,
-            seguimientos: [
-              SeguimientoRubro(
-                id: 'SEG-1',
-                tipo: 'Revisión',
-                responsable: 'Juan Pérez',
-                fecha: DateTime(2025, 5, 21),
-                subSeguimientos: 2,
-                estado: 'En progreso',
-                descripcion:
-                    'Primera revisión realizada, detectado sello deteriorado.',
-              ),
-              SeguimientoRubro(
-                id: 'SEG-2',
-                tipo: 'Cotización',
-                responsable: 'Juan Pérez',
-                fecha: DateTime(2025, 5, 22),
-                subSeguimientos: 0,
-                estado: 'Finalizado',
-                descripcion: 'Cotización enviada al propietario.',
-              ),
-            ],
-          ),
-        ],
-        imagenes: [],
-        archivos: [],
-        seguimientos: [
-          SeguimientoHistorial(
-            id: 'HS-1',
-            estado: 'Revisión',
-            responsable: 'Juan Pérez',
-            fecha: DateTime(2025, 5, 21),
-            descripcion: 'Visita técnica realizada.',
-          ),
-          SeguimientoHistorial(
-            id: 'HS-2',
-            estado: 'Cotización',
-            responsable: 'Juan Pérez',
-            fecha: DateTime(2025, 5, 22),
-            descripcion: 'Cotización enviada por correo.',
-          ),
-        ],
-      ),
-      Reporte(
-        id: 'R-002',
-        ubicacion: 'Envigado, La Mina',
-        tipoInmueble: 'Casa',
-        propietario: 'Ana Martínez',
-        tipoReporte: 'Mantenimiento general',
-        fecha: DateTime(2025, 5, 18),
-        estado: EstadoReporte.finalizado,
-        responsable: 'Equipo de Mantenimiento',
-        referencia: 'CAS-5512',
-        descripcion: 'Mantenimiento preventivo de techos y canaletas.',
-        seguimientoGeneral: 'Mantenimiento completado satisfactoriamente.',
-        rubros: [],
-        imagenes: [],
-        archivos: [],
-        seguimientos: [
-          SeguimientoHistorial(
-            id: 'HS-3',
-            estado: 'En ejecución',
-            responsable: 'Equipo de Mantenimiento',
-            fecha: DateTime(2025, 5, 18),
-            descripcion: 'Limpieza de canaletas y ajuste de tejas.',
-          ),
-          SeguimientoHistorial(
-            id: 'HS-4',
-            estado: 'Finalizado',
-            responsable: 'Equipo de Mantenimiento',
-            fecha: DateTime(2025, 5, 19),
-            descripcion: 'Trabajo completado y validado.',
-          ),
-        ],
-      ),
-      Reporte(
-        id: 'R-003',
-        ubicacion: 'Bello, Centro',
-        tipoInmueble: 'Local comercial',
-        propietario: 'Carlos López',
-        tipoReporte: 'Mejora iluminación',
-        fecha: DateTime(2025, 5, 15),
-        estado: EstadoReporte.pendiente,
-        responsable: 'No asignado',
-        referencia: 'LC-3456',
-        descripcion:
-            'Instalación de luces LED para mejorar la visibilidad en el local.',
-        seguimientoGeneral: 'Aún no se ha asignado responsable.',
-        rubros: [],
-        imagenes: [],
-        archivos: [],
-        seguimientos: [],
-      ),
-      Reporte(
-        id: 'R-004',
-        ubicacion: 'Itagüí, Industrial',
-        tipoInmueble: 'Fábrica',
-        propietario: 'María González',
-        tipoReporte: 'Emergencia plomería',
-        fecha: DateTime(2025, 4, 25),
-        estado: EstadoReporte.urgente,
-        responsable: 'Equipo Emergencia',
-        referencia: 'FAB-7890',
-        descripcion:
-            'Ruptura de tubería principal causando inundación.',
-        seguimientoGeneral:
-            'Requiere atención inmediata. Sin avances en 10 días.',
-        rubros: [
-          RubroReporte(
-            id: 'RB-2',
-            nombre: 'Emergencia',
-            activo: true,
-            valorTotal: 500000,
-            seguimientos: [
-              SeguimientoRubro(
-                id: 'SEG-3',
-                tipo: 'Evaluación',
-                responsable: 'Equipo Emergencia',
-                fecha: DateTime(2025, 4, 26),
-                subSeguimientos: 0,
-                estado: 'Pendiente',
-                descripcion: 'Evaluación inicial pendiente.',
-              ),
-            ],
-          ),
-        ],
-        imagenes: [],
-        archivos: [],
-        seguimientos: [
-          SeguimientoHistorial(
-            id: 'HS-5',
-            estado: 'Alerta',
-            responsable: 'Equipo Emergencia',
-            fecha: DateTime(2025, 4, 25),
-            descripcion: 'Reporte de emergencia recibido.',
-          ),
-        ],
-      ),
-      Reporte(
-        id: 'R-005',
-        ubicacion: 'Sabaneta, Calle Larga',
-        tipoInmueble: 'Apartamento',
-        propietario: 'Luis Ramírez',
-        tipoReporte: 'Pintura exterior',
-        fecha: DateTime(2025, 5, 10),
-        estado: EstadoReporte.enProgreso,
-        responsable: 'Equipo de Pintura',
-        referencia: 'AP-1234',
-        descripcion: 'Renovación de pintura en fachada y balcones.',
-        seguimientoGeneral: 'Trabajo en progreso, 60% completado.',
-        rubros: [
-          RubroReporte(
-            id: 'RB-3',
-            nombre: 'Pintura',
-            activo: true,
-            valorTotal: 800000,
-            seguimientos: [
-              SeguimientoRubro(
-                id: 'SEG-4',
-                tipo: 'Preparación',
-                responsable: 'Equipo de Pintura',
-                fecha: DateTime(2025, 5, 11),
-                subSeguimientos: 1,
-                estado: 'Finalizado',
-                descripcion: 'Limpieza y preparación de superficies.',
-              ),
-              SeguimientoRubro(
-                id: 'SEG-5',
-                tipo: 'Aplicación',
-                responsable: 'Equipo de Pintura',
-                fecha: DateTime(2025, 5, 13),
-                subSeguimientos: 0,
-                estado: 'En progreso',
-                descripcion: 'Aplicación de primera capa.',
-              ),
-            ],
-          ),
-        ],
-        imagenes: [],
-        archivos: [],
-        seguimientos: [
-          SeguimientoHistorial(
-            id: 'HS-6',
-            estado: 'Iniciado',
-            responsable: 'Equipo de Pintura',
-            fecha: DateTime(2025, 5, 10),
-            descripcion: 'Inicio de trabajos de pintura.',
-          ),
-        ],
-      ),
-    ];
+  // Headers base
+  Map<String, String> get _headers => const {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+
+  // Obtener token guardado
+  Future<String?> _getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('auth_token');
+  }
+
+  // Headers autenticados
+  Future<Map<String, String>> get _authHeaders async {
+    final token = await _getToken();
+    return {
+      ..._headers,
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
+
+  // Obtener usuario actual
+  Future<User?> getCurrentUser() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userJson = prefs.getString('current_user');
+      if (userJson != null) {
+        return User.fromJson(json.decode(userJson));
+      }
+    } catch (e) {
+      debugPrint('Error al obtener usuario actual: $e');
+    }
+    return null;
+  }
+
+  /// Obtiene los reportes filtrados (opcionalmente por propietario)
+  Future<List<Reporte>> obtenerReportes({int? propietarioId}) async {
+    final client = _client();
+    try {
+      var url = '$baseUrl$reportesEndpoint';
+      if (propietarioId != null) {
+        url += '?id_propietario=$propietarioId';
+      }
+
+      final response = await client.get(
+        Uri.parse(url),
+        headers: await _authHeaders,
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        final List<dynamic>? data = responseData['data'] is List 
+            ? responseData['data'] 
+            : (responseData['data'] is Map ? responseData['data']['data'] : null);
+
+        if (data != null) {
+          return data.map((json) => Reporte.fromJson(json)).toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error al obtener reportes: $e');
+      return [];
+    } finally {
+      if (!kIsWeb) client.close();
+    }
   }
 
   /// Obtiene un reporte específico por su ID
-  /// En producción, haría una petición GET /reportes/{id}
   Future<Reporte?> obtenerReportePorId(String id) async {
-    await _simulateNetworkDelay();
-    final reportes = await obtenerReportes();
+    final client = _client();
     try {
-      return reportes.firstWhere((r) => r.id == id);
-    } catch (e) {
+      final response = await client.get(
+        Uri.parse('$baseUrl$reportesEndpoint/$id'),
+        headers: await _authHeaders,
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        final data = responseData['data'];
+        if (data != null) {
+          return Reporte.fromJson(data);
+        }
+      }
       return null;
+    } catch (e) {
+      debugPrint('Error al obtener reporte por ID: $e');
+      return null;
+    } finally {
+      if (!kIsWeb) client.close();
     }
   }
 
   /// Calcula las estadísticas de los reportes
-  /// Retorna un mapa con contadores por estado
-  Future<Map<EstadoReporte, int>> obtenerEstadisticas() async {
-    final reportes = await obtenerReportes();
+  Future<Map<EstadoReporte, int>> obtenerEstadisticas({int? propietarioId}) async {
+    final reportes = await obtenerReportes(propietarioId: propietarioId);
     final estadisticas = <EstadoReporte, int>{
       EstadoReporte.pendiente: 0,
       EstadoReporte.enProgreso: 0,
@@ -257,39 +135,13 @@ class ReportesService {
     return estadisticas;
   }
 
-  /// Busca reportes por texto (ubicación, tipo, ID, propietario, etc.)
-  /// Retorna lista filtrada de reportes
-  Future<List<Reporte>> buscarReportes(String query) async {
-    if (query.isEmpty) return obtenerReportes();
-
-    final reportes = await obtenerReportes();
-    final queryLower = query.toLowerCase();
-
-    return reportes.where((reporte) {
-      return reporte.id.toLowerCase().contains(queryLower) ||
-          reporte.ubicacion.toLowerCase().contains(queryLower) ||
-          reporte.tipoInmueble.toLowerCase().contains(queryLower) ||
-          reporte.propietario.toLowerCase().contains(queryLower) ||
-          reporte.tipoReporte.toLowerCase().contains(queryLower) ||
-          reporte.responsable.toLowerCase().contains(queryLower) ||
-          reporte.referencia.toLowerCase().contains(queryLower) ||
-          reporte.descripcion.toLowerCase().contains(queryLower);
-    }).toList();
-  }
-
-  /// Filtra reportes por estado específico
-  Future<List<Reporte>> filtrarPorEstado(EstadoReporte estado) async {
-    final reportes = await obtenerReportes();
-    return reportes.where((r) => r.estado == estado).toList();
-  }
-
   /// Filtra reportes por múltiples criterios
-  /// Si estado es null, no filtra por estado
   Future<List<Reporte>> filtrarReportes({
     EstadoReporte? estado,
     String? query,
+    int? propietarioId,
   }) async {
-    var reportes = await obtenerReportes();
+    var reportes = await obtenerReportes(propietarioId: propietarioId);
 
     // Filtrar por estado si se proporciona
     if (estado != null) {
@@ -314,15 +166,15 @@ class ReportesService {
     return reportes;
   }
 
-  /// Obtiene el total de seguimientos de todos los reportes
-  Future<int> obtenerTotalSeguimientos() async {
-    final reportes = await obtenerReportes();
+  /// Obtiene el total de seguimientos de todos los reportes de un propietario
+  Future<int> obtenerTotalSeguimientos({int? propietarioId}) async {
+    final reportes = await obtenerReportes(propietarioId: propietarioId);
     return reportes.fold<int>(0, (sum, reporte) => sum + reporte.totalSeguimientos);
   }
 
-  /// Calcula el progreso promedio de todos los reportes
-  Future<double> obtenerProgresoPromedio() async {
-    final reportes = await obtenerReportes();
+  /// Calcula el progreso promedio de todos los reportes de un propietario
+  Future<double> obtenerProgresoPromedio({int? propietarioId}) async {
+    final reportes = await obtenerReportes(propietarioId: propietarioId);
     if (reportes.isEmpty) return 0.0;
 
     final progresoTotal = reportes.fold<double>(

@@ -240,24 +240,29 @@ class Reporte {
   /// Crea una instancia desde JSON
   factory Reporte.fromJson(Map<String, dynamic> json) {
     return Reporte(
-      id: json['id'] ?? '',
-      ubicacion: json['ubicacion'] ?? '',
-      tipoInmueble: json['tipoInmueble'] ?? '',
-      propietario: json['propietario'] ?? '',
-      tipoReporte: json['tipoReporte'] ?? '',
-      fecha: DateTime.parse(json['fecha']),
+      id: (json['id_reporte'] ?? json['id'] ?? '').toString(),
+      ubicacion: json['inmueble_direccion'] ?? json['ubicacion'] ?? '',
+      tipoInmueble: json['inmueble_categoria'] ?? json['tipoInmueble'] ?? '',
+      propietario: json['propietario_nombre'] ?? json['propietario'] ?? '',
+      tipoReporte: json['tipo_reporte'] ?? json['tipoReporte'] ?? '',
+      fecha: json['fecha_creacion'] != null 
+          ? DateTime.parse(json['fecha_creacion']) 
+          : (json['fecha'] != null ? DateTime.parse(json['fecha']) : DateTime.now()),
       estado: EstadoReporteExtension.fromString(json['estado'] ?? 'Pendiente'),
-      responsable: json['responsable'] ?? '',
-      referencia: json['referencia'] ?? '',
+      responsable: json['reporta_nombre'] ?? json['responsable'] ?? '',
+      referencia: json['inmueble_referencia'] ?? json['referencia'] ?? '',
       descripcion: json['descripcion'] ?? '',
-      seguimientoGeneral: json['seguimientoGeneral'] ?? '',
+      seguimientoGeneral: json['seguimiento_general'] ?? json['seguimientoGeneral'] ?? '',
       rubros: (json['rubros'] as List<dynamic>?)
               ?.map((r) => RubroReporte.fromJson(r))
               .toList() ??
           [],
       imagenes: (json['imagenes'] as List<dynamic>?)?.cast<String>() ?? [],
       archivos: (json['archivos'] as List<dynamic>?)?.cast<String>() ?? [],
-      seguimientos: (json['seguimientos'] as List<dynamic>?)
+      seguimientos: (json['seguimientosGenerales'] as List<dynamic>?)
+              ?.map((s) => SeguimientoHistorial.fromJson(s))
+              .toList() ??
+          (json['seguimientos'] as List<dynamic>?)
               ?.map((s) => SeguimientoHistorial.fromJson(s))
               .toList() ??
           [],
