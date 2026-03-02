@@ -1,0 +1,45 @@
+name: flutter_citas_app
+description: Sistema de gestión de citas médicas
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.2
+  
+  # Almacenamiento local
+  shared_preferences: ^2.2.2
+  
+  # Calendario
+  table_calendar: ^3.0.9
+  
+  # Formateo de fechas
+  intl: ^0.18.1
+  
+  # UI
+  cupertino_icons: ^1.0.6
+  animate_do: ^4.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+  # 📦 Paquete para generar íconos personalizados
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/images/
+
+# ⚙️ Configuración del ícono de la app
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/LogoApp.png"  # Asegúrate de que este archivo exista
