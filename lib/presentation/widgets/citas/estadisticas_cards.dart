@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../../models/cita_model.dart';
 
 class EstadisticasCards extends StatelessWidget {
@@ -33,11 +34,11 @@ class EstadisticasCards extends StatelessWidget {
                 null,
               ),
               _buildCard(
-                'Programadas',
-                estadisticas[EstadoCita.programada].toString(),
+                'Solicitadas',
+                estadisticas[EstadoCita.solicitada].toString(),
                 const Color(0xFFFFA726),
                 Icons.schedule,
-                EstadoCita.programada,
+                EstadoCita.solicitada,
               ),
               _buildCard(
                 'Confirmadas',
@@ -68,6 +69,7 @@ class EstadisticasCards extends StatelessWidget {
   }
 
   Widget _buildCard(String label, String value, Color color, IconData icon, EstadoCita? estado) {
+    final intValue = int.tryParse(value) ?? 0;
     return GestureDetector(
       onTap: () => onEstadoTap?.call(estado),
       child: Container(
@@ -77,25 +79,47 @@ class EstadisticasCards extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
+            // Neumorphism effect
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: Colors.white.withOpacity(0.8),
+              blurRadius: 10,
+              offset: const Offset(-3, -3),
+            ),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(3, 3),
             ),
           ],
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.white,
+              Colors.grey.shade50,
+            ],
+          ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 28),
+            Icon(icon, color: color, size: 28)
+                .animate()
+                .scale(duration: 300.ms, curve: Curves.elasticOut),
             const SizedBox(height: 8),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+            TweenAnimationBuilder<int>(
+              tween: IntTween(begin: 0, end: intValue),
+              duration: const Duration(milliseconds: 800),
+              builder: (context, animatedValue, child) {
+                return Text(
+                  animatedValue.toString(),
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                );
+              },
             ),
             Text(
               label,
@@ -107,7 +131,10 @@ class EstadisticasCards extends StatelessWidget {
             ),
           ],
         ),
-      ),
+      )
+          .animate()
+          .fadeIn(duration: 400.ms)
+          .slideY(begin: 0.2, end: 0, duration: 400.ms, curve: Curves.easeOut),
     );
   }
 }

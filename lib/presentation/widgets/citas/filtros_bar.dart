@@ -173,14 +173,16 @@ class FiltrosBar extends StatelessWidget {
 
   String _getEstadoTexto(EstadoCita estado) {
     switch (estado) {
-      case EstadoCita.programada:
-        return 'Programada';
+      case EstadoCita.solicitada:
+        return 'Solicitada';
       case EstadoCita.confirmada:
         return 'Confirmada';
       case EstadoCita.completada:
         return 'Completada';
       case EstadoCita.cancelada:
         return 'Cancelada';
+      case EstadoCita.reprogramada:
+        return 'Reprogramada';
     }
   }
 }

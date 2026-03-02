@@ -37,7 +37,7 @@ class _EditarCitaDialogState extends State<EditarCitaDialog> {
     _numeroDocumentoController = TextEditingController(text: widget.cita.numeroDocumento);
     // _servicioController = TextEditingController(text: widget.cita.servicio);
     // Only set servicio if it's one of the valid options
-    final validServicios = ['avaluos', 'gestion de alquileres', 'asesoria legal'];
+    final validServicios = ['avaluos', 'gestion_alquileres', 'asesoria_legal', 'venta_inmuebles', 'compra_inmuebles', 'consultoria'];
     _servicioSeleccionado = validServicios.contains(widget.cita.servicio) ? widget.cita.servicio : null;
     _detallesController = TextEditingController(text: widget.cita.detalles);
 
@@ -234,8 +234,11 @@ class _EditarCitaDialogState extends State<EditarCitaDialog> {
                         ),
                         items: const [
                           DropdownMenuItem(value: 'avaluos', child: Text('Avaluos')),
-                          DropdownMenuItem(value: 'gestion de alquileres', child: Text('Gestion de Alquileres')),
-                          DropdownMenuItem(value: 'asesoria legal', child: Text('Asesoria Legal')),
+                          DropdownMenuItem(value: 'gestion_alquileres', child: Text('Gestión de Alquileres')),
+                          DropdownMenuItem(value: 'asesoria_legal', child: Text('Asesoría Legal')),
+                          DropdownMenuItem(value: 'venta_inmuebles', child: Text('Venta de Inmuebles')),
+                          DropdownMenuItem(value: 'compra_inmuebles', child: Text('Compra de Inmuebles')),
+                          DropdownMenuItem(value: 'consultoria', child: Text('Consultoría Inmobiliaria')),
                         ],
                         validator: (value) =>
                             value == null || value.isEmpty ? 'Requerido' : null,
@@ -445,20 +448,22 @@ class _EditarCitaDialogState extends State<EditarCitaDialog> {
 
   String _getEstadoTexto(EstadoCita estado) {
     switch (estado) {
-      case EstadoCita.programada:
-        return 'Programada';
+      case EstadoCita.solicitada:
+        return 'Solicitada';
       case EstadoCita.confirmada:
         return 'Confirmada';
       case EstadoCita.completada:
         return 'Completada';
       case EstadoCita.cancelada:
         return 'Cancelada';
+      case EstadoCita.reprogramada:
+        return 'Reprogramada';
     }
   }
 
   Color _getEstadoColor(EstadoCita estado) {
     switch (estado) {
-      case EstadoCita.programada:
+      case EstadoCita.solicitada:
         return const Color(0xFFFFA726);
       case EstadoCita.confirmada:
         return const Color(0xFF42A5F5);
@@ -466,6 +471,8 @@ class _EditarCitaDialogState extends State<EditarCitaDialog> {
         return const Color(0xFF66BB6A);
       case EstadoCita.cancelada:
         return const Color(0xFFEF5350);
+      case EstadoCita.reprogramada:
+        return const Color(0xFF9C27B0);
     }
   }
 }

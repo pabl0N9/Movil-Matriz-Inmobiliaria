@@ -169,40 +169,73 @@ class ListaVistaWidget extends StatelessWidget {
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      cita.servicio,
+                      cita.servicioNombre ?? cita.servicio,
                       style: const TextStyle(fontSize: 13, color: Colors.black54),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
+              if (cita.inmuebleDireccion != null && cita.inmuebleDireccion!.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(Icons.location_on, size: 14, color: Colors.black54),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        cita.inmuebleDireccion!,
+                        style: const TextStyle(fontSize: 13, color: Colors.black54),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Text(
+                      '${cita.edicionesRealizadas ?? 0}/${cita.edicionesMaximas ?? 2} ediciones',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
                   IconButton(
                     icon: const Icon(Icons.swap_horiz, size: 20),
                     color: const Color(0xFF0A4B84),
                     onPressed: () => onEstadoChange(cita),
-                    tooltip: 'Cambiar estado',
+                    tooltip: 'Reagendar',
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
                   const SizedBox(width: 12),
                   IconButton(
-                    icon: const Icon(Icons.edit, size: 20),
-                    color: const Color(0xFF42A5F5),
-                    onPressed: () => onEdit(cita),
-                    tooltip: 'Editar',
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                  const SizedBox(width: 12),
-                  IconButton(
-                    icon: const Icon(Icons.delete, size: 20),
+                    icon: const Icon(Icons.cancel, size: 20),
                     color: const Color(0xFFEF5350),
+                    onPressed: () => onEdit(cita),
+                    tooltip: 'Cancelar',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: 12),
+                  IconButton(
+                    icon: const Icon(Icons.notifications_active, size: 20),
+                    color: const Color(0xFFFFA000),
                     onPressed: () => onDelete(cita),
-                    tooltip: 'Eliminar',
+                    tooltip: 'Activar recordatorios',
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),

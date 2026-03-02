@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../data/repositories/user_repository.dart'; // 👈 importa el repositorio
-import 'login_page.dart'; // 👈 importa el login
+import 'package:flutter/services.dart';
+import '../../services/auth_service.dart';
+import '../../models/user_model.dart';
+import 'login_page.dart';
+import '../widgets/citas/alertas_modernas.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -12,41 +15,121 @@ class RegisterPage extends StatefulWidget {
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
 
+  final _documentTypeController = TextEditingController();
+  final _documentNumberController = TextEditingController();
   final _nameController = TextEditingController();
+  final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+
+  TipoDocumento _selectedDocumentType = TipoDocumento.CC;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+  bool _acceptTerms = false;
+  String _passwordStrength = '';
+  Color _passwordStrengthColor = Colors.grey;
+
+  @override
+  void initState() {
+    super.initState();
+    _passwordController.addListener(() {
+      _checkPasswordStrength(_passwordController.text);
+    });
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _lastNameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
+    _documentTypeController.dispose();
+    _documentNumberController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  void _register() {
+  void _checkPasswordStrength(String password) {
+    setState(() {
+      if (password.isEmpty) {
+        _passwordStrength = '';
+        _passwordStrengthColor = Colors.grey;
+        return;
+      }
+
+      int strength = 0;
+      if (password.length >= 8) strength++;
+      if (RegExp(r'[A-Z]').hasMatch(password)) strength++;
+      if (RegExp(r'[a-z]').hasMatch(password)) strength++;
+      if (RegExp(r'[0-9]').hasMatch(password)) strength++;
+      if (RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)) strength++;
+
+      if (strength <= 2) {
+        _passwordStrength = 'Débil';
+        _passwordStrengthColor = Colors.red;
+      } else if (strength <= 3) {
+        _passwordStrength = 'Media';
+        _passwordStrengthColor = Colors.orange;
+      } else if (strength <= 4) {
+        _passwordStrength = 'Fuerte';
+        _passwordStrengthColor = Colors.blue;
+      } else {
+        _passwordStrength = 'Muy fuerte';
+        _passwordStrengthColor = Colors.green;
+      }
+    });
+  }
+
+  Future<void> _register() async {
+    if (!_acceptTerms) {
+      context.showModernToast(
+        message: "Debes aceptar los términos y condiciones",
+        type: AlertType.warning,
+      );
+      return;
+    }
+
     if (_formKey.currentState!.validate()) {
-      // 🔹 Guardamos el usuario en memoria
-      UserRepository.register(
-        _nameController.text.trim(),
-        _emailController.text.trim(),
-        _passwordController.text.trim(),
-      );
+      // Mostrar indicador de carga
+      setState(() {});
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("✅ Registro exitoso, ahora inicia sesión"),
-          backgroundColor: Colors.green,
-        ),
-      );
+      try {
+        final result = await AuthService.register(
+          nombreCompleto: _nameController.text.trim(),
+          apellidoCompleto: _lastNameController.text.trim(),
+          email: _emailController.text.trim(),
+          telefono: _phoneController.text.trim(),
+          tipoDocumento: _selectedDocumentType,
+          numeroDocumento: _documentNumberController.text.trim(),
+          password: _passwordController.text.trim(),
+          confirmPassword: _confirmPasswordController.text.trim(),
+        );
 
-      // 🔹 Redirigir al login
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginPage()),
-      );
+        if (result['success']) {
+          context.showModernSuccess(
+            message: "¡Cuenta creada exitosamente!",
+            onComplete: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginPage()),
+              );
+            },
+          );
+        } else {
+          context.showModernToast(
+            message: result['message'] ?? 'Error en el registro',
+            type: AlertType.warning,
+          );
+        }
+      } catch (e) {
+        context.showModernToast(
+          message: "Error de conexión. Inténtalo de nuevo.",
+          type: AlertType.error,
+        );
+      }
     }
   }
 
@@ -100,44 +183,184 @@ class _RegisterPageState extends State<RegisterPage> {
                             ),
                             const SizedBox(height: 30),
 
-                            // Campo nombre
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            // Campos de documento (igual que la web)
+                            Row(
                               children: [
-                                const Text(
-                                  "Nombre",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.white,
+                                // Tipo de documento
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        "Tipo de Documento",
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      DropdownButtonFormField<TipoDocumento>(
+                                        value: _selectedDocumentType,
+                                        decoration: InputDecoration(
+                                          filled: true,
+                                          fillColor: Colors.white,
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                        ),
+                                        items: TipoDocumento.values.map((tipo) {
+                                          return DropdownMenuItem(
+                                            value: tipo,
+                                            child: Text(_getTipoDocumentoTexto(tipo)),
+                                          );
+                                        }).toList(),
+                                        validator: (value) {
+                                          if (value == null) {
+                                            return "Selecciona un tipo";
+                                          }
+                                          return null;
+                                        },
+                                        onChanged: (value) {
+                                          if (value != null) {
+                                            setState(() => _selectedDocumentType = value);
+                                          }
+                                        },
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                const SizedBox(height: 8),
-                                TextFormField(
-                                  controller: _nameController,
-                                  decoration: InputDecoration(
-                                    filled: true,
-                                    fillColor: Colors.white,
-                                    hintText: "Ingresa tu nombre",
-                                    prefixIcon: const Icon(Icons.person),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
+                                const SizedBox(width: 16),
+                                // Número de documento
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        "Número de Documento",
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      TextFormField(
+                                        controller: _documentNumberController,
+                                        keyboardType: TextInputType.number,
+                                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                        decoration: InputDecoration(
+                                          filled: true,
+                                          fillColor: Colors.white,
+                                          hintText: "Número de documento",
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                        ),
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return "Obligatorio";
+                                          }
+                                          if (value.length < 5) {
+                                            return "Inválido";
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                    ],
                                   ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return "El nombre es obligatorio";
-                                    }
-                                    if (!RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$')
-                                        .hasMatch(value)) {
-                                      return "Solo se permiten letras";
-                                    }
-                                    return null;
-                                  },
                                 ),
-                                const SizedBox(height: 20),
                               ],
                             ),
+                            const SizedBox(height: 20),
+
+                            // Campos de nombre y apellido (igual que la web)
+                            Row(
+                              children: [
+                                // Nombre completo
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        "Nombre completo",
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      TextFormField(
+                                        controller: _nameController,
+                                        decoration: InputDecoration(
+                                          filled: true,
+                                          fillColor: Colors.white,
+                                          hintText: "Tu nombre completo",
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                        ),
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return "Obligatorio";
+                                          }
+                                          if (!RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$')
+                                              .hasMatch(value)) {
+                                            return "Solo letras";
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                // Apellido completo
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        "Apellido completo",
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      TextFormField(
+                                        controller: _lastNameController,
+                                        decoration: InputDecoration(
+                                          filled: true,
+                                          fillColor: Colors.white,
+                                          hintText: "Tu apellido completo",
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                        ),
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return "Obligatorio";
+                                          }
+                                          if (!RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$')
+                                              .hasMatch(value)) {
+                                            return "Solo letras";
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
 
                             // Campo correo
                             Column(
@@ -154,12 +377,12 @@ class _RegisterPageState extends State<RegisterPage> {
                                 const SizedBox(height: 8),
                                 TextFormField(
                                   controller: _emailController,
+                                  keyboardType: TextInputType.emailAddress,
                                   decoration: InputDecoration(
                                     filled: true,
                                     fillColor: Colors.white,
-                                    hintText: "Ingresa tu correo",
-                                    prefixIcon:
-                                        const Icon(Icons.email_outlined),
+                                    hintText: "tu@email.com",
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(10),
                                     ),
@@ -168,8 +391,48 @@ class _RegisterPageState extends State<RegisterPage> {
                                     if (value == null || value.isEmpty) {
                                       return "El correo es obligatorio";
                                     }
-                                    if (!value.contains("@")) {
-                                      return "El correo debe contener @";
+                                    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                                      return "Correo inválido";
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 20),
+                              ],
+                            ),
+
+                            // Campo teléfono
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Teléfono",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                TextFormField(
+                                  controller: _phoneController,
+                                  keyboardType: TextInputType.phone,
+                                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                  decoration: InputDecoration(
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    hintText: "Tu número de teléfono",
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return "El teléfono es obligatorio";
+                                    }
+                                    if (value.length < 7) {
+                                      return "Teléfono inválido";
                                     }
                                     return null;
                                   },
@@ -193,13 +456,22 @@ class _RegisterPageState extends State<RegisterPage> {
                                 const SizedBox(height: 8),
                                 TextFormField(
                                   controller: _passwordController,
-                                  obscureText: true,
+                                  obscureText: _obscurePassword,
                                   decoration: InputDecoration(
                                     filled: true,
                                     fillColor: Colors.white,
                                     hintText: "Crea una contraseña",
-                                    prefixIcon:
-                                        const Icon(Icons.lock_outline),
+                                    prefixIcon: const Icon(Icons.lock_outline),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                                      ),
+                                      onPressed: () {
+                                        setState(() {
+                                          _obscurePassword = !_obscurePassword;
+                                        });
+                                      },
+                                    ),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(10),
                                     ),
@@ -214,6 +486,29 @@ class _RegisterPageState extends State<RegisterPage> {
                                     return null;
                                   },
                                 ),
+                                if (_passwordStrength.isNotEmpty) ...[
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        'Fuerza: $_passwordStrength',
+                                        style: TextStyle(
+                                          color: _passwordStrengthColor,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: LinearProgressIndicator(
+                                          value: _getPasswordStrengthValue(),
+                                          backgroundColor: Colors.grey.shade300,
+                                          valueColor: AlwaysStoppedAnimation<Color>(_passwordStrengthColor),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                                 const SizedBox(height: 20),
                               ],
                             ),
@@ -233,12 +528,22 @@ class _RegisterPageState extends State<RegisterPage> {
                                 const SizedBox(height: 8),
                                 TextFormField(
                                   controller: _confirmPasswordController,
-                                  obscureText: true,
+                                  obscureText: _obscureConfirmPassword,
                                   decoration: InputDecoration(
                                     filled: true,
                                     fillColor: Colors.white,
                                     hintText: "Repite tu contraseña",
                                     prefixIcon: const Icon(Icons.lock_reset),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                                      ),
+                                      onPressed: () {
+                                        setState(() {
+                                          _obscureConfirmPassword = !_obscureConfirmPassword;
+                                        });
+                                      },
+                                    ),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(10),
                                     ),
@@ -256,6 +561,66 @@ class _RegisterPageState extends State<RegisterPage> {
                                 const SizedBox(height: 20),
                               ],
                             ),
+
+                            // Checkbox de términos y condiciones
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.2),
+                                ),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Checkbox(
+                                    value: _acceptTerms,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _acceptTerms = value ?? false;
+                                      });
+                                    },
+                                    activeColor: const Color(0xFF00457B),
+                                    checkColor: Colors.white,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: RichText(
+                                      text: TextSpan(
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          height: 1.4,
+                                        ),
+                                        children: [
+                                          const TextSpan(text: 'Acepto los '),
+                                          TextSpan(
+                                            text: 'términos y condiciones',
+                                            style: const TextStyle(
+                                              color: Color(0xFF00457B),
+                                              fontWeight: FontWeight.w600,
+                                              decoration: TextDecoration.underline,
+                                            ),
+                                          ),
+                                          const TextSpan(text: ' y la '),
+                                          TextSpan(
+                                            text: 'política de privacidad',
+                                            style: const TextStyle(
+                                              color: Color(0xFF00457B),
+                                              fontWeight: FontWeight.w600,
+                                              decoration: TextDecoration.underline,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 20),
 
                             // Botón Registrar
                             SizedBox(
@@ -311,5 +676,28 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
       ),
     );
+  }
+
+  double _getPasswordStrengthValue() {
+    if (_passwordStrength == 'Débil') return 0.2;
+    if (_passwordStrength == 'Media') return 0.4;
+    if (_passwordStrength == 'Fuerte') return 0.7;
+    if (_passwordStrength == 'Muy fuerte') return 1.0;
+    return 0.0;
+  }
+
+  String _getTipoDocumentoTexto(TipoDocumento tipo) {
+    switch (tipo) {
+      case TipoDocumento.CC:
+        return 'Cédula de Ciudadanía';
+      case TipoDocumento.CE:
+        return 'Cédula de Extranjería';
+      case TipoDocumento.NIT:
+        return 'NIT';
+      case TipoDocumento.PASAPORTE:
+        return 'Pasaporte';
+      case TipoDocumento.TI:
+        return 'Tarjeta de Identidad';
+    }
   }
 }

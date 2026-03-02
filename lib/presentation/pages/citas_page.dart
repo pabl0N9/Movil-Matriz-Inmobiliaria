@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
-
-
+import 'package:provider/provider.dart';
 import '../../models/cita_model.dart';
 import '../../services/citas_service.dart';
+import '../../providers/theme_provider.dart';
 import '../widgets/citas/estadisticas_cards.dart';
-import '../widgets/citas/barra_busqueda.dart';
-import '../widgets/citas/filtros_bar.dart';
+import '../widgets/citas/barra_busqueda_mejorada.dart';
+import '../widgets/citas/filtros_avanzados_dialog.dart';
+import '../widgets/citas/animacion_reagendamiento.dart';
+import '../widgets/citas/alertas_modernas.dart';
 import '../widgets/citas/calendario_widget.dart';
 import '../widgets/citas/lista_citas_dia.dart';
 import '../widgets/citas/crear_cita_dialog.dart';
 import '../widgets/citas/editar_cita_dialog.dart';
 import '../widgets/citas/ver_cita_dialog.dart';
 import '../widgets/citas/lista_vista_widget.dart';
-import '../widgets/header.dart';
+import '../widgets/citas/timeline_vista_widget.dart';
+import '../../services/notification_service.dart';
+import 'package:intl/intl.dart';
 
 class CitasPage extends StatefulWidget {
   const CitasPage({super.key});
@@ -22,17 +26,6 @@ class CitasPage extends StatefulWidget {
 }
 
 class _CitasPageState extends State<CitasPage> {
-  int _selectedIndex = 1;
-
-  void _onItemTapped(int index) {
-    setState(() => _selectedIndex = index);
-    if (index == 0) {
-      Navigator.pushNamed(context, '/home');
-    } else if (index == 2) {
-      Navigator.pushNamed(context, '/reports');
-    }
-  }
-
   final CitasService _citasService = CitasService();
   final TextEditingController _busquedaController = TextEditingController();
 
@@ -46,13 +39,24 @@ class _CitasPageState extends State<CitasPage> {
   EstadoCita? _estadoFiltro;
   DateTime? _fechaInicioFiltro;
   DateTime? _fechaFinFiltro;
-  bool _vistaCalendario = true;
+  int _vistaSeleccionada = 0; // 0: Calendario, 1: Lista, 2: Timeline
+  bool _fabExpanded = false;
 
   @override
   void initState() {
     super.initState();
     _selectedDay = _focusedDay;
     _cargarCitas();
+  }
+
+  int _mapServicioToId(String servicio) {
+    const servicioMapping = {
+      'Visita a Propiedad': 1,
+      'AvalÇ§os': 2,
+      'GestiÇün de Alquileres': 3,
+      'AsesorÇða Legal': 4,
+    };
+    return servicioMapping[servicio] ?? 1;
   }
 
   @override
@@ -130,11 +134,26 @@ class _CitasPageState extends State<CitasPage> {
         // Cuando se suelta una cita en el área general, no hacemos nada
       },
       builder: (context, candidateData, rejectedData) {
+        // Dynamic background gradient based on time of day
+        final hour = DateTime.now().hour;
+        final isMorning = hour >= 6 && hour < 12;
+        final isAfternoon = hour >= 12 && hour < 18;
+
         return Scaffold(
-          backgroundColor: const Color(0xFFF5F5F5),
-          body: Column(
+          body: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: isMorning
+                    ? [const Color(0xFFE3F2FD), const Color(0xFFF5F5F5)] // Light blue morning
+                    : isAfternoon
+                        ? [const Color(0xFFFFF8E1), const Color(0xFFF5F5F5)] // Light yellow afternoon
+                        : [const Color(0xFFE8EAF6), const Color(0xFFF5F5F5)], // Light purple evening
+              ),
+            ),
+            child: Column(
             children: [
-              const CustomHeader(title: 'Citas'),
               // Estadísticas
               Padding(
                 padding: const EdgeInsets.only(top: 24.0),
@@ -150,10 +169,15 @@ class _CitasPageState extends State<CitasPage> {
                 ),
               ),
 
-              // Barra de búsqueda
-              BarraBusqueda(
+              // Barra de búsqueda mejorada
+              BarraBusquedaMejorada(
                 controller: _busquedaController,
                 onChanged: (value) {
+                  setState(() {
+                    _aplicarFiltros();
+                  });
+                },
+                onSubmitted: (value) {
                   setState(() {
                     _aplicarFiltros();
                   });
@@ -164,35 +188,7 @@ class _CitasPageState extends State<CitasPage> {
                     _aplicarFiltros();
                   });
                 },
-              ),
-
-              // Filtros
-              FiltrosBar(
-                estadoSeleccionado: _estadoFiltro,
-                fechaInicio: _fechaInicioFiltro,
-                fechaFin: _fechaFinFiltro,
-                onEstadoChanged: (estado) {
-                  setState(() {
-                    _estadoFiltro = estado;
-                    _aplicarFiltros();
-                  });
-                },
-                onFechasChanged: (inicio, fin) {
-                  setState(() {
-                    _fechaInicioFiltro = inicio;
-                    _fechaFinFiltro = fin;
-                    _aplicarFiltros();
-                  });
-                },
-                onLimpiarFiltros: () {
-                  setState(() {
-                    _estadoFiltro = null;
-                    _fechaInicioFiltro = null;
-                    _fechaFinFiltro = null;
-                    _busquedaController.clear();
-                    _aplicarFiltros();
-                  });
-                },
+                suggestions: _obtenerSugerenciasBusqueda(),
               ),
 
               // Botón cambiar vista
@@ -201,23 +197,28 @@ class _CitasPageState extends State<CitasPage> {
                 child: Row(
                   children: [
                     Expanded(
-                      child: SegmentedButton<bool>(
+                      child: SegmentedButton<int>(
                         segments: const [
                           ButtonSegment(
-                            value: true,
+                            value: 0,
                             label: Text('Calendario'),
                             icon: Icon(Icons.calendar_month),
                           ),
                           ButtonSegment(
-                            value: false,
+                            value: 1,
                             label: Text('Lista'),
                             icon: Icon(Icons.list),
                           ),
+                          ButtonSegment(
+                            value: 2,
+                            label: Text('Timeline'),
+                            icon: Icon(Icons.timeline),
+                          ),
                         ],
-                        selected: {_vistaCalendario},
-                        onSelectionChanged: (Set<bool> newSelection) {
+                        selected: {_vistaSeleccionada},
+                        onSelectionChanged: (Set<int> newSelection) {
                           setState(() {
-                            _vistaCalendario = newSelection.first;
+                            _vistaSeleccionada = newSelection.first;
                           });
                         },
                       ),
@@ -230,33 +231,131 @@ class _CitasPageState extends State<CitasPage> {
 
               // Contenido principal
               Expanded(
-                child: _vistaCalendario ? _buildVistaCalendario(citasDelDiaSeleccionado) : _buildVistaLista(),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  transitionBuilder: (Widget child, Animation<double> animation) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0.1, 0.0),
+                          end: Offset.zero,
+                        ).animate(CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOut,
+                        )),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: _buildVistaSeleccionada(citasDelDiaSeleccionado),
+                ),
               ),
             ],
+            ),
           ),
-          floatingActionButton: FloatingActionButton.extended(
-            onPressed: _mostrarDialogoCrearCita,
-            backgroundColor: const Color(0xFF0A4B84),
-            icon: const Icon(Icons.add, color: Colors.white),
-            label: const Text('Nueva Cita', style: TextStyle(color: Colors.white)),
-          ),
-          bottomNavigationBar: BottomNavigationBar(
-            currentIndex: _selectedIndex,
-            onTap: _onItemTapped,
-            selectedItemColor: const Color.fromRGBO(0, 120, 206, 1),
-            unselectedItemColor: const Color.fromRGBO(97, 138, 133, 1),
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home),
-                label: 'Inicio',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.calendar_today),
-                label: 'Citas',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.build),
-                label: 'Reportes',
+          floatingActionButton: Stack(
+            children: [
+              if (_fabExpanded) ...[
+                Positioned(
+                  bottom: 100,
+                  right: 16,
+                  child: FloatingActionButton(
+                    heroTag: 'filter',
+                    onPressed: () {
+                      _mostrarFiltrosAvanzados();
+                      setState(() => _fabExpanded = false);
+                    },
+                    backgroundColor: Colors.blue,
+                    child: const Icon(Icons.filter_alt, color: Colors.white),
+                    tooltip: 'Filtros avanzados',
+                  ),
+                ),
+                Positioned(
+                  bottom: 160,
+                  right: 16,
+                  child: FloatingActionButton(
+                    heroTag: 'clear',
+                    onPressed: () {
+                      setState(() {
+                        _estadoFiltro = null;
+                        _fechaInicioFiltro = null;
+                        _fechaFinFiltro = null;
+                        _busquedaController.clear();
+                        _aplicarFiltros();
+                        _fabExpanded = false;
+                      });
+                    },
+                    backgroundColor: Colors.orange,
+                    child: const Icon(Icons.clear_all, color: Colors.white),
+                    tooltip: 'Limpiar filtros',
+                  ),
+                ),
+                Positioned(
+                  bottom: 220,
+                  right: 16,
+                  child: FloatingActionButton(
+                    heroTag: 'calendar',
+                    onPressed: () {
+                      setState(() {
+                        _vistaSeleccionada = (_vistaSeleccionada + 1) % 3;
+                        _fabExpanded = false;
+                      });
+                    },
+                    backgroundColor: Colors.green,
+                    child: Icon(
+                      _vistaSeleccionada == 0 ? Icons.list : _vistaSeleccionada == 1 ? Icons.timeline : Icons.calendar_month,
+                      color: Colors.white,
+                    ),
+                    tooltip: 'Cambiar vista',
+                  ),
+                ),
+                Positioned(
+                  bottom: 280,
+                  right: 16,
+                  child: Consumer<ThemeProvider>(
+                    builder: (context, themeProvider, child) {
+                      return FloatingActionButton(
+                        heroTag: 'theme',
+                        onPressed: () {
+                          themeProvider.toggleTheme();
+                          setState(() => _fabExpanded = false);
+                        },
+                        backgroundColor: Colors.purple,
+                        child: Icon(
+                          themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                          color: Colors.white,
+                        ),
+                        tooltip: 'Cambiar tema',
+                      );
+                    },
+                  ),
+                ),
+              ],
+              Positioned(
+                bottom: 16,
+                right: 16,
+                child: GestureDetector(
+                  onLongPress: () => setState(() => _fabExpanded = !_fabExpanded),
+                  child: FloatingActionButton.extended(
+                    onPressed: _fabExpanded
+                        ? () => setState(() => _fabExpanded = false)
+                        : _mostrarDialogoCrearCita,
+                    backgroundColor: const Color(0xFF0A4B84),
+                    icon: AnimatedRotation(
+                      turns: _fabExpanded ? 0.125 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: const Icon(Icons.add, color: Colors.white),
+                    ),
+                    label: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: _fabExpanded
+                          ? const Text('Cerrar', style: TextStyle(color: Colors.white))
+                          : const Text('Nueva Cita', style: TextStyle(color: Colors.white)),
+                    ),
+                    extendedIconLabelSpacing: _fabExpanded ? 4 : null,
+                  ),
+                ),
               ),
             ],
           ),
@@ -266,152 +365,169 @@ class _CitasPageState extends State<CitasPage> {
   }
 
   Widget _buildVistaCalendario(List<Cita> citasDelDia) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          // Calendario con drag target
-          DragTarget<Cita>(
-            onWillAccept: (data) => true,
-            onAccept: (cita) {
-              // No hacemos nada aquí, el drag se maneja en los días individuales
-            },
-            builder: (context, candidateData, rejectedData) {
-              return CalendarioWidget(
-                focusedDay: _focusedDay,
-                selectedDay: _selectedDay,
-                citasPorFecha: _citasPorFecha,
-                onDaySelected: (selectedDay, focusedDay) {
-                  setState(() {
-                    _selectedDay = selectedDay;
-                    _focusedDay = focusedDay;
-                  });
-                },
-                onPageChanged: (focusedDay) {
-                  setState(() {
-                    _focusedDay = focusedDay;
-                  });
-                },
-                onCitaDraggedToNewDate: _reagendarCita,
-              );
-            },
-          ),
+    return RefreshIndicator(
+      onRefresh: _cargarCitas,
+      color: const Color(0xFF0A4B84),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          children: [
+            // Calendario con drag target
+            DragTarget<Cita>(
+              onWillAccept: (data) => true,
+              onAccept: (cita) {
+                // No hacemos nada aquí, el drag se maneja en los días individuales
+              },
+              builder: (context, candidateData, rejectedData) {
+                return CalendarioWidget(
+                  focusedDay: _focusedDay,
+                  selectedDay: _selectedDay,
+                  citasPorFecha: _citasPorFecha,
+                  onDaySelected: (selectedDay, focusedDay) {
+                    setState(() {
+                      _selectedDay = selectedDay;
+                      _focusedDay = focusedDay;
+                    });
+                  },
+                  onPageChanged: (focusedDay) {
+                    setState(() {
+                      _focusedDay = focusedDay;
+                    });
+                  },
+                  onCitaDraggedToNewDate: _reagendarCita,
+                  onCreateAtDay: _crearCitaEnFecha,
+                );
+              },
+            ),
 
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-          // Lista de citas del día con drag target
-          DragTarget<Cita>(
-            onWillAccept: (data) => true,
-            onAccept: (cita) {
-              if (_selectedDay != null) {
-                _reagendarCita(cita, _selectedDay!);
-              }
-            },
-            builder: (context, candidateData, rejectedData) {
-              return Container(
-                decoration: candidateData.isNotEmpty
-                    ? BoxDecoration(
-                        color: const Color(0xFF0A4B84).withOpacity(0.1),
-                        border: Border.all(color: const Color(0xFF0A4B84), width: 2),
-                        borderRadius: BorderRadius.circular(12),
-                      )
-                    : null,
-                child: ListaCitasDia(
-                  citas: citasDelDia,
-                  onCitaTap: _mostrarDialogoVerCita,
-                  onEstadoChange: _cambiarEstadoCita,
-                  onEdit: _mostrarDialogoEditarCita,
-                  onDelete: _eliminarCita,
-                  onDragToNewDate: _reagendarCita,
-                ),
-              );
-            },
-          ),
+            // Lista de citas del día con drag target
+            DragTarget<Cita>(
+              onWillAccept: (data) => true,
+              onAccept: (cita) {
+                if (_selectedDay != null) {
+                  _reagendarCita(cita, _selectedDay!);
+                }
+              },
+              builder: (context, candidateData, rejectedData) {
+                return Container(
+                  decoration: candidateData.isNotEmpty
+                      ? BoxDecoration(
+                          color: const Color(0xFF0A4B84).withOpacity(0.1),
+                          border: Border.all(color: const Color(0xFF0A4B84), width: 2),
+                          borderRadius: BorderRadius.circular(12),
+                        )
+                      : null,
+                  child: ListaCitasDia(
+                    citas: citasDelDia,
+                    onCitaTap: _mostrarDialogoVerCita,
+                    onEstadoChange: _reagendarConFechaActual,
+                    onEdit: _mostrarDialogoCancelar,
+                    onDelete: _activarCampana,
+                    onDragToNewDate: _reagendarCita,
+                    onBell: _activarCampana,
+                  ),
+                );
+              },
+            ),
 
-          const SizedBox(height: 80),
-        ],
+            const SizedBox(height: 80),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildVistaLista() {
-    return ListaVistaWidget(
-      citas: _citasFiltradas,
-      onCitaTap: _mostrarDialogoVerCita,
-      onEstadoChange: _cambiarEstadoCita,
-      onEdit: _mostrarDialogoEditarCita,
-      onDelete: _eliminarCita,
+    return RefreshIndicator(
+      onRefresh: _cargarCitas,
+      color: const Color(0xFF0A4B84),
+      child: ListaVistaWidget(
+        citas: _citasFiltradas,
+        onCitaTap: _mostrarDialogoVerCita,
+        onEstadoChange: _reagendarConFechaActual,
+        onEdit: _mostrarDialogoCancelar,
+        onDelete: _activarCampana,
+      ),
     );
+  }
+
+  Widget _buildVistaSeleccionada(List<Cita> citasDelDia) {
+    switch (_vistaSeleccionada) {
+      case 0:
+        return _buildVistaCalendario(citasDelDia);
+      case 1:
+        return _buildVistaLista();
+      case 2:
+        return RefreshIndicator(
+          onRefresh: _cargarCitas,
+          color: const Color(0xFF0A4B84),
+          child: TimelineVistaWidget(
+            citas: _citasFiltradas,
+            onCitaTap: _mostrarDialogoVerCita,
+            onEstadoChange: _reagendarConFechaActual,
+            onEdit: _mostrarDialogoCancelar,
+            onDelete: _activarCampana,
+          ),
+        );
+      default:
+        return _buildVistaCalendario(citasDelDia);
+    }
   }
 
   // CRUD Operations
 
-  Future<void> _mostrarDialogoCrearCita() async {
-    final Cita? nuevaCita = await showGeneralDialog<Cita>(
+  Future<void> _mostrarDialogoCrearCita([DateTime? fechaPreseleccionada]) async {
+    print('📱 Abriendo diálogo de crear cita...');
+
+    final Map<String, dynamic>? citaData = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
-      barrierDismissible: true,
-      barrierLabel: '',
-      transitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (context, animation, secondaryAnimation) => const CrearCitaDialog(),
-      transitionBuilder: (context, animation, secondaryAnimation, child) {
-        return ScaleTransition(
-          scale: Tween<double>(begin: 0.8, end: 1.0).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
-          child: FadeTransition(
-            opacity: animation,
-            child: child,
-          ),
-        );
-      },
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => CrearCitaDialog(initialDate: fechaPreseleccionada),
     );
 
-    if (nuevaCita != null) {
-      final exito = await _citasService.crearCita(nuevaCita);
-      if (exito && mounted) {
-        _mostrarMensaje('Cita creada exitosamente', Colors.green);
-        _cargarCitas();
-      } else if (mounted) {
-        _mostrarMensaje('Error al crear la cita', Colors.red);
+    print('📨 Datos retornados del diálogo: $citaData');
+
+    if (citaData != null) {
+      print('🔄 Llamando al servicio para crear cita...');
+
+      try {
+        final nuevaCita = await _citasService.crearCita(
+          fechaHora: citaData['fechaHora'],
+          servicio: citaData['servicio'],
+          detalles: citaData['detalles'],
+        );
+
+        print('✅ Respuesta del servicio: $nuevaCita');
+
+        if (nuevaCita != null && mounted) {
+          print('🎉 Cita creada exitosamente');
+          _mostrarMensaje('Cita creada exitosamente', Colors.green);
+          _cargarCitas();
+        } else if (mounted) {
+          print('❌ Error: La cita retornada es null');
+          _mostrarMensaje('Error al crear la cita', Colors.red);
+        }
+      } catch (e) {
+        print('💥 Excepción al crear cita: $e');
+        if (mounted) {
+          _mostrarMensaje('Error al crear la cita: $e', Colors.red);
+        }
       }
+    } else {
+      print('❌ Diálogo cancelado o sin datos');
     }
   }
 
   Future<void> _mostrarDialogoEditarCita(Cita cita) async {
-    final bool? confirmar = await _mostrarDialogoConfirmacion(
-      '¿Editar cita?',
-      '¿Estás seguro de que deseas editar esta cita?',
-    );
-
-    if (confirmar != true) return;
-
-    if (!mounted) return;
-
-    final Cita? citaEditada = await showGeneralDialog<Cita>(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: '',
-      transitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (context, animation, secondaryAnimation) => EditarCitaDialog(cita: cita),
-      transitionBuilder: (context, animation, secondaryAnimation, child) {
-        return ScaleTransition(
-          scale: Tween<double>(begin: 0.8, end: 1.0).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
-          child: FadeTransition(
-            opacity: animation,
-            child: child,
-          ),
-        );
-      },
-    );
-
-    if (citaEditada != null) {
-      final exito = await _citasService.actualizarCita(citaEditada);
-      if (exito && mounted) {
-        _mostrarMensaje('Cita actualizada exitosamente', Colors.green);
-        _cargarCitas();
-      } else if (mounted) {
-        _mostrarMensaje('Error al actualizar la cita', Colors.red);
-      }
-    }
+    _mostrarMensaje('Para cambiar tu cita usa Reagendar o Cancelar.', Colors.orange);
   }
 
+  void _crearCitaEnFecha(DateTime fecha) {
+    _mostrarDialogoCrearCita(fecha);
+  }
   Future<void> _mostrarDialogoVerCita(Cita cita) async {
     await showGeneralDialog(
       context: context,
@@ -448,79 +564,15 @@ class _CitasPageState extends State<CitasPage> {
     }
   }
 
-  Future<void> _cambiarEstadoCita(Cita cita) async {
-    final EstadoCita? nuevoEstado = await showDialog<EstadoCita>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cambiar Estado'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: EstadoCita.values.map((estado) {
-            return ListTile(
-              leading: Container(
-                width: 16,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: cita.copyWith(estado: estado).estadoColor,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              title: Text(cita.copyWith(estado: estado).estadoTexto),
-              onTap: () => Navigator.pop(context, estado),
-            );
-          }).toList(),
-        ),
-      ),
-    );
-
-    if (nuevoEstado == null || nuevoEstado == cita.estado) return;
-
-    final bool? confirmar = await _mostrarDialogoConfirmacion(
-      '¿Cambiar estado?',
-      '¿Estás seguro de que deseas cambiar el estado de esta cita?',
-    );
-
-    if (confirmar != true) return;
-
-    final citaActualizada = cita.copyWith(estado: nuevoEstado);
-    final exito = await _citasService.actualizarCita(citaActualizada);
-
-    if (exito && mounted) {
-      _mostrarMensaje('Estado actualizado exitosamente', Colors.green);
-      _cargarCitas();
-    } else if (mounted) {
-      _mostrarMensaje('Error al actualizar el estado', Colors.red);
-    }
-  }
+  // Actualizar estado ya no se usa en flujo usuario (reagendar/cancelar)
 
   Future<void> _reagendarCita(Cita cita, DateTime nuevaFecha) async {
-    final bool? confirmar = await _mostrarDialogoConfirmacion(
-      '¿Reagendar cita?',
-      '¿Deseas mover esta cita a la nueva fecha?',
-    );
+    await _mostrarBottomSheetReagendar(cita, nuevaFecha);
+  }
 
-    if (confirmar != true) return;
-
-    final nuevaFechaHora = DateTime(
-      nuevaFecha.year,
-      nuevaFecha.month,
-      nuevaFecha.day,
-      cita.fechaHora.hour,
-      cita.fechaHora.minute,
-    );
-
-    final citaActualizada = cita.copyWith(fechaHora: nuevaFechaHora);
-    final exito = await _citasService.actualizarCita(citaActualizada);
-
-    if (exito && mounted) {
-      _mostrarMensaje('Cita reagendada exitosamente', Colors.green);
-      _cargarCitas();
-      setState(() {
-        _selectedDay = nuevaFecha;
-      });
-    } else if (mounted) {
-      _mostrarMensaje('Error al reagendar la cita', Colors.red);
-    }
+  Future<void> _reagendarConFechaActual(Cita cita) async {
+    final fecha = DateTime(cita.fechaHora.year, cita.fechaHora.month, cita.fechaHora.day);
+    await _reagendarCita(cita, fecha);
   }
 
   // Helpers
@@ -550,14 +602,281 @@ class _CitasPageState extends State<CitasPage> {
   }
 
   void _mostrarMensaje(String mensaje, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(mensaje),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
+    AlertType tipo;
+    if (color == Colors.green) {
+      tipo = AlertType.success;
+    } else if (color == Colors.red) {
+      tipo = AlertType.error;
+    } else if (color == Colors.orange) {
+      tipo = AlertType.warning;
+    } else {
+      tipo = AlertType.info;
+    }
+
+    context.showModernToast(
+      message: mensaje,
+      type: tipo,
+    );
+  }
+
+  List<String> _obtenerSugerenciasBusqueda() {
+    final Set<String> sugerencias = {};
+
+    for (var cita in _todasLasCitas) {
+      sugerencias.add(cita.nombreCompleto);
+      sugerencias.add(cita.servicio);
+      sugerencias.add(cita.telefono);
+      sugerencias.add(cita.numeroDocumento);
+    }
+
+    return sugerencias.take(10).toList();
+  }
+
+  void _mostrarFiltrosAvanzados() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => FiltrosAvanzadosDialog(
+        estadoSeleccionado: _estadoFiltro,
+        fechaInicio: _fechaInicioFiltro,
+        fechaFin: _fechaFinFiltro,
+        onFiltrosAplicados: (estado, fechaInicio, fechaFin, servicio, soloUrgentes, precioMin, precioMax) {
+          setState(() {
+            _estadoFiltro = estado;
+            _fechaInicioFiltro = fechaInicio;
+            _fechaFinFiltro = fechaFin;
+            // Aquí podrías agregar más filtros avanzados si los implementas
+            _aplicarFiltros();
+          });
+        },
       ),
     );
   }
+
+  Future<void> _mostrarBottomSheetReagendar(Cita cita, DateTime fechaDestino) async {
+    if (!mounted) return;
+    final idServicio = _mapServicioToId(cita.servicio);
+
+    // helper para bloquear fines de semana
+    bool _esFinDeSemana(DateTime d) => d.weekday == DateTime.saturday || d.weekday == DateTime.sunday;
+
+    DateTime fechaSeleccionada = fechaDestino;
+    List<TimeOfDay> horarios = await _citasService.obtenerHorariosDisponibles(fechaSeleccionada, idServicio: idServicio);
+    if (horarios.isEmpty) {
+      _mostrarMensaje('No hay horarios disponibles para esa fecha', Colors.red);
+      return;
+    }
+
+    TimeOfDay horaSeleccionada = horarios.first;
+    String motivo = '';
+
+    final bool? confirmar = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            left: 16,
+            right: 16,
+            top: 16,
+          ),
+          child: StatefulBuilder(
+            builder: (context, setModalState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Reagendar cita', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context, false),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text('Fecha: ${DateFormat('dd MMM yyyy', 'es').format(fechaSeleccionada)}'),
+                      ),
+                      TextButton.icon(
+                        onPressed: () async {
+                          final nuevaFecha = await showDatePicker(
+                            context: context,
+                            initialDate: fechaSeleccionada,
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                            selectableDayPredicate: (d) => !_esFinDeSemana(d),
+                          );
+                          if (nuevaFecha != null) {
+                            final nuevosHorarios = await _citasService.obtenerHorariosDisponibles(nuevaFecha, idServicio: idServicio);
+                            if (nuevosHorarios.isEmpty) {
+                              _mostrarMensaje('No hay horarios en esa fecha', Colors.red);
+                              return;
+                            }
+                            setModalState(() {
+                              fechaSeleccionada = nuevaFecha;
+                              horarios = nuevosHorarios;
+                              horaSeleccionada = horarios.first;
+                            });
+                          }
+                        },
+                        icon: const Icon(Icons.date_range),
+                        label: const Text('Cambiar fecha'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: horarios.map((hora) {
+                      final selected = hora == horaSeleccionada;
+                      return ChoiceChip(
+                        label: Text(hora.format(context)),
+                        selected: selected,
+                        onSelected: (_) => setModalState(() => horaSeleccionada = hora),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Motivo del cambio',
+                      hintText: 'Explica brevemente (min. 10 caracteres)',
+                    ),
+                    onChanged: (value) => motivo = value,
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => Navigator.pop(context, true),
+                      icon: const Icon(Icons.check),
+                      label: const Text('Confirmar reagendamiento'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0A4B84),
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        );
+      },
+    );
+
+    if (confirmar != true) return;
+    if (motivo.trim().length < 10) {
+      _mostrarMensaje('El motivo debe tener al menos 10 caracteres', Colors.red);
+      return;
+    }
+
+    final nuevaFechaHora = DateTime(
+      fechaSeleccionada.year,
+      fechaSeleccionada.month,
+      fechaSeleccionada.day,
+      horaSeleccionada.hour,
+      horaSeleccionada.minute,
+    );
+
+    final citaActualizada = await _citasService.reagendarCita(
+      cita: cita,
+      nuevaFechaHora: nuevaFechaHora,
+      motivo: motivo.trim(),
+      idServicio: idServicio,
+    );
+
+    if (citaActualizada != null && mounted) {
+      ReagendamientoAnimationHelper.showReagendamientoAnimation(
+        context,
+        cita,
+        cita.fechaHora,
+        nuevaFechaHora,
+        () {
+          _cargarCitas();
+          setState(() {
+            _selectedDay = fechaDestino;
+          });
+        },
+      );
+      _mostrarMensaje('Cita reagendada', Colors.green);
+    } else {
+      _mostrarMensaje('Error al reagendar la cita', Colors.red);
+    }
+  }
+
+  Future<void> _mostrarDialogoCancelar(Cita cita) async {
+    final motivoController = TextEditingController();
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Cancelar cita'),
+          content: TextField(
+            controller: motivoController,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              hintText: 'Indica el motivo (min. 10 caracteres)',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Volver'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFEF5350),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Cancelar cita'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmar != true) return;
+    if (motivoController.text.trim().length < 10) {
+      _mostrarMensaje('El motivo debe tener al menos 10 caracteres', Colors.red);
+      return;
+    }
+
+    final exito = await _citasService.cancelarCita(cita, motivoController.text.trim());
+    if (exito && mounted) {
+      _mostrarMensaje('Cita cancelada', Colors.green);
+      _cargarCitas();
+    } else {
+      _mostrarMensaje('No se pudo cancelar la cita', Colors.red);
+    }
+  }
+
+  Future<void> _activarCampana(Cita cita) async {
+    try {
+      await NotificationService().scheduleAdvancedAppointmentNotifications(cita);
+      _mostrarMensaje('Recordatorios activados', Colors.green);
+    } catch (e) {
+      _mostrarMensaje('No se pudieron programar notificaciones', Colors.red);
+    }
+  }
+
+  Future<void> _reagendarDesdeDrag(Cita cita, DateTime nuevaFecha) async {
+    await _mostrarBottomSheetReagendar(cita, nuevaFecha);
+  }
 }
+
 
