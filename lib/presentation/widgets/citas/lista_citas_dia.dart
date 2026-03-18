@@ -64,7 +64,8 @@ class ListaCitasDia extends StatelessWidget {
                   onView: () => onCitaTap(cita),
                   onReagendar: () => onEstadoChange(cita),
                   onCancelar: () => onEdit(cita),
-                  onAddCalendar: onAddCalendar != null ? () => onAddCalendar!(cita) : null,
+                  onAddCalendar:
+                      onAddCalendar != null ? () => onAddCalendar!(cita) : null,
                   onBell: onBell != null ? () => onBell!(cita) : null,
                   onDragToNewDate: onDragToNewDate,
                   showEdits: showEdits,
@@ -167,8 +168,10 @@ class _CitaCard extends StatelessWidget {
   Widget _buildCard(BuildContext context) {
     final now = DateTime.now();
     final timeDifference = cita.fechaHora.difference(now).inHours;
-    final isUpcoming = timeDifference > 0 && timeDifference <= 72; // siguiente 72h
-    final isVeryClose = timeDifference > 0 && timeDifference <= 1; // siguiente hora
+    final isUpcoming =
+        timeDifference > 0 && timeDifference <= 72; // siguiente 72h
+    final isVeryClose =
+        timeDifference > 0 && timeDifference <= 1; // siguiente hora
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -176,7 +179,9 @@ class _CitaCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isVeryClose ? Colors.red.withOpacity(0.5) : cita.estadoColor.withOpacity(0.3),
+          color: isVeryClose
+              ? Colors.red.withOpacity(0.5)
+              : cita.estadoColor.withOpacity(0.3),
           width: isVeryClose ? 3 : 2,
         ),
         boxShadow: [
@@ -186,7 +191,9 @@ class _CitaCard extends StatelessWidget {
             offset: const Offset(-4, -4),
           ),
           BoxShadow(
-            color: isVeryClose ? Colors.red.withOpacity(0.2) : Colors.black.withOpacity(0.1),
+            color: isVeryClose
+                ? Colors.red.withOpacity(0.2)
+                : Colors.black.withOpacity(0.1),
             blurRadius: isUpcoming ? 16 : 12,
             offset: const Offset(4, 4),
           ),
@@ -213,7 +220,8 @@ class _CitaCard extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: cita.estadoColor,
                       borderRadius: BorderRadius.circular(12),
@@ -240,7 +248,8 @@ class _CitaCard extends StatelessWidget {
                   const Spacer(),
                   if (showEdits) ...[
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade100,
                         borderRadius: BorderRadius.circular(12),
@@ -261,7 +270,7 @@ class _CitaCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        DateFormat('HH:mm').format(cita.fechaHora),
+                        DateFormat('h:mm a').format(cita.fechaHora),
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -269,7 +278,11 @@ class _CitaCard extends StatelessWidget {
                         ),
                       )
                           .animate()
-                          .slideX(begin: 0.2, end: 0, duration: 400.ms, curve: Curves.easeOut)
+                          .slideX(
+                              begin: 0.2,
+                              end: 0,
+                              duration: 400.ms,
+                              curve: Curves.easeOut)
                           .fadeIn(duration: 400.ms),
                       Text(
                         DateFormat('dd MMM yyyy', 'es').format(cita.fechaHora),
@@ -280,7 +293,11 @@ class _CitaCard extends StatelessWidget {
                         ),
                       )
                           .animate()
-                          .slideX(begin: 0.2, end: 0, duration: 500.ms, curve: Curves.easeOut)
+                          .slideX(
+                              begin: 0.2,
+                              end: 0,
+                              duration: 500.ms,
+                              curve: Curves.easeOut)
                           .fadeIn(duration: 500.ms),
                     ],
                   ),
@@ -296,7 +313,11 @@ class _CitaCard extends StatelessWidget {
                 ),
               )
                   .animate()
-                  .slideY(begin: 0.1, end: 0, duration: 300.ms, curve: Curves.easeOut)
+                  .slideY(
+                      begin: 0.1,
+                      end: 0,
+                      duration: 300.ms,
+                      curve: Curves.easeOut)
                   .fadeIn(duration: 300.ms),
               const SizedBox(height: 4),
               Row(
@@ -311,10 +332,12 @@ class _CitaCard extends StatelessWidget {
                     style: const TextStyle(fontSize: 13, color: Colors.black54),
                   )
                       .animate()
-                      .slideX(begin: 0.1, end: 0, duration: 350.ms, delay: 150.ms)
+                      .slideX(
+                          begin: 0.1, end: 0, duration: 350.ms, delay: 150.ms)
                       .fadeIn(duration: 350.ms, delay: 150.ms),
                   const SizedBox(width: 12),
-                  const Icon(Icons.medical_services, size: 14, color: Colors.black54)
+                  const Icon(Icons.medical_services,
+                          size: 14, color: Colors.black54)
                       .animate()
                       .scale(duration: 200.ms, delay: 200.ms)
                       .fadeIn(duration: 200.ms, delay: 200.ms),
@@ -322,20 +345,24 @@ class _CitaCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       cita.servicioNombre ?? cita.servicio,
-                      style: const TextStyle(fontSize: 13, color: Colors.black54),
+                      style:
+                          const TextStyle(fontSize: 13, color: Colors.black54),
                       overflow: TextOverflow.ellipsis,
                     )
                         .animate()
-                        .slideX(begin: 0.1, end: 0, duration: 350.ms, delay: 250.ms)
+                        .slideX(
+                            begin: 0.1, end: 0, duration: 350.ms, delay: 250.ms)
                         .fadeIn(duration: 350.ms, delay: 250.ms),
                   ),
                 ],
               ),
-              if (cita.inmuebleDireccion != null && cita.inmuebleDireccion!.isNotEmpty) ...[
+              if (cita.inmuebleDireccion != null &&
+                  cita.inmuebleDireccion!.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Icon(Icons.location_on, size: 14, color: Colors.black54)
+                    const Icon(Icons.location_on,
+                            size: 14, color: Colors.black54)
                         .animate()
                         .scale(duration: 200.ms, delay: 220.ms)
                         .fadeIn(duration: 200.ms, delay: 220.ms),
@@ -343,11 +370,16 @@ class _CitaCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         cita.inmuebleDireccion!,
-                        style: const TextStyle(fontSize: 13, color: Colors.black54),
+                        style: const TextStyle(
+                            fontSize: 13, color: Colors.black54),
                         overflow: TextOverflow.ellipsis,
                       )
                           .animate()
-                          .slideX(begin: 0.1, end: 0, duration: 350.ms, delay: 270.ms)
+                          .slideX(
+                              begin: 0.1,
+                              end: 0,
+                              duration: 350.ms,
+                              delay: 270.ms)
                           .fadeIn(duration: 350.ms, delay: 270.ms),
                     ),
                   ],
@@ -362,10 +394,13 @@ class _CitaCard extends StatelessWidget {
                       icon: Icon(
                         Icons.notifications_active,
                         size: 20,
-                        color: isUpcoming ? Colors.orange : const Color(0xFF0A4B84),
+                        color: isUpcoming
+                            ? Colors.orange
+                            : const Color(0xFF0A4B84),
                       )
                           .animate(
-                            onPlay: (controller) => isVeryClose ? controller.repeat() : null,
+                            onPlay: (controller) =>
+                                isVeryClose ? controller.repeat() : null,
                           )
                           .scale(
                             begin: const Offset(1, 1),
@@ -386,7 +421,8 @@ class _CitaCard extends StatelessWidget {
                       constraints: const BoxConstraints(),
                     )
                         .animate()
-                        .slideY(begin: 0.2, end: 0, duration: 400.ms, delay: 250.ms)
+                        .slideY(
+                            begin: 0.2, end: 0, duration: 400.ms, delay: 250.ms)
                         .fadeIn(duration: 400.ms, delay: 250.ms),
                     const SizedBox(width: 12),
                   ],
@@ -395,7 +431,8 @@ class _CitaCard extends StatelessWidget {
                       icon: const Icon(Icons.calendar_today, size: 20),
                       color: const Color(0xFF9C27B0),
                       onPressed: () async {
-                        final success = await CalendarService().addAppointmentToCalendar(cita);
+                        final success = await CalendarService()
+                            .addAppointmentToCalendar(cita);
                         if (success && context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -411,7 +448,8 @@ class _CitaCard extends StatelessWidget {
                       constraints: const BoxConstraints(),
                     )
                         .animate()
-                        .slideY(begin: 0.2, end: 0, duration: 400.ms, delay: 300.ms)
+                        .slideY(
+                            begin: 0.2, end: 0, duration: 400.ms, delay: 300.ms)
                         .fadeIn(duration: 400.ms, delay: 300.ms),
                     const SizedBox(width: 12),
                   ],
@@ -424,7 +462,8 @@ class _CitaCard extends StatelessWidget {
                     constraints: const BoxConstraints(),
                   )
                       .animate()
-                      .slideY(begin: 0.2, end: 0, duration: 450.ms, delay: 350.ms)
+                      .slideY(
+                          begin: 0.2, end: 0, duration: 450.ms, delay: 350.ms)
                       .fadeIn(duration: 450.ms, delay: 350.ms),
                   const SizedBox(width: 12),
                   IconButton(
@@ -436,7 +475,8 @@ class _CitaCard extends StatelessWidget {
                     constraints: const BoxConstraints(),
                   )
                       .animate()
-                      .slideY(begin: 0.2, end: 0, duration: 500.ms, delay: 400.ms)
+                      .slideY(
+                          begin: 0.2, end: 0, duration: 500.ms, delay: 400.ms)
                       .fadeIn(duration: 500.ms, delay: 400.ms),
                 ],
               ),
@@ -448,6 +488,10 @@ class _CitaCard extends StatelessWidget {
         .animate()
         .fadeIn(duration: 400.ms)
         .slideY(begin: 0.1, end: 0, duration: 400.ms, curve: Curves.easeOut)
-        .scale(begin: const Offset(0.95, 0.95), end: const Offset(1, 1), duration: 300.ms, curve: Curves.easeOut);
+        .scale(
+            begin: const Offset(0.95, 0.95),
+            end: const Offset(1, 1),
+            duration: 300.ms,
+            curve: Curves.easeOut);
   }
 }

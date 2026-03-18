@@ -8,6 +8,7 @@ import '../widgets/reportes/barra_busqueda_reportes.dart';
 import '../widgets/reportes/filtros_estado_chips.dart';
 import '../widgets/reportes/reporte_card.dart';
 import '../widgets/reportes/detalle_reporte_dialog.dart';
+import '../widgets/header.dart'; // <-- Añadido el header global
 
 /// Página principal de reportes para propietarios
 class ReportesPage extends StatefulWidget {
@@ -78,21 +79,28 @@ class _ReportesPageState extends State<ReportesPage>
     if (mounted) setState(() => _isLoading = true);
 
     try {
-      final propietarioId = _currentUser?.esPropietario == true
+      final propietarioId =
+          _currentUser?.esPropietario == true ? _currentUser?.idPersona : null;
+      final administrativoId = (_currentUser?.esAdministrativo == true &&
+              _currentUser?.esSuperAdmin == false)
           ? _currentUser?.idPersona
           : null;
 
       final reportes = await _reportesService.obtenerReportes(
         propietarioId: propietarioId,
+        administrativoId: administrativoId,
       );
       final estadisticas = await _reportesService.obtenerEstadisticas(
         propietarioId: propietarioId,
+        administrativoId: administrativoId,
       );
       final totalSeguimientos = await _reportesService.obtenerTotalSeguimientos(
         propietarioId: propietarioId,
+        administrativoId: administrativoId,
       );
       final progresoPromedio = await _reportesService.obtenerProgresoPromedio(
         propietarioId: propietarioId,
+        administrativoId: administrativoId,
       );
 
       if (mounted) {
@@ -120,7 +128,8 @@ class _ReportesPageState extends State<ReportesPage>
             ),
             backgroundColor: Colors.red.shade700,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             margin: const EdgeInsets.all(16),
           ),
         );
@@ -164,222 +173,233 @@ class _ReportesPageState extends State<ReportesPage>
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6FA),
-      body: RefreshIndicator(
-        onRefresh: _cargarDatos,
-        color: const Color(0xFF0A4B84),
-        displacement: 100,
-        child: CustomScrollView(
-          controller: _scrollController,
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            // ─── Hero Header ───────────────────────────────────────
-            SliverAppBar(
-              expandedHeight: 170,
-              pinned: true,
-              stretch: true,
-              backgroundColor: const Color(0xFF0A4B84),
-              elevation: 0,
-              flexibleSpace: FlexibleSpaceBar(
-                stretchModes: const [
-                  StretchMode.zoomBackground,
-                  StretchMode.fadeTitle,
-                ],
-                titlePadding:
-                    const EdgeInsets.only(left: 20, bottom: 16, right: 20),
-                title: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Mis Reportes',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 22,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    if (_currentUser != null)
-                      Text(
-                        _currentUser!.nombreCompletoTexto,
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.75),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                  ],
-                ),
-                background: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Color(0xFF0D5FA3), Color(0xFF0A4B84)],
-                        ),
-                      ),
-                    ),
-                    // Decorative circles
-                    Positioned(
-                      right: -30,
-                      top: -20,
-                      child: Container(
-                        width: 160,
-                        height: 160,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.05),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      right: 40,
-                      top: 40,
-                      child: Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.07),
-                        ),
-                      ),
-                    ),
-                    // Total badge top right
-                    if (!_isLoading)
-                      Positioned(
-                        right: 20,
-                        top: 20,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 7),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.18),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            '${_todosLosReportes.length} reportes',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
+      body: Column(
+        children: [
+          // Header Global
+          const CustomHeader(title: 'Reportes'),
 
-            // ─── Body Content ──────────────────────────────────────
-            SliverToBoxAdapter(
-              child: _isLoading
-                  ? const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 80),
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          color: Color(0xFF0A4B84),
-                          strokeWidth: 2.5,
-                        ),
-                      ),
-                    )
-                  : FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: Column(
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _cargarDatos,
+              color: const Color(0xFF0A4B84),
+              displacement: 60,
+              child: CustomScrollView(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  // ─── Hero Header ───────────────────────────────────────
+                  SliverAppBar(
+                    expandedHeight: 170,
+                    pinned: true,
+                    stretch: true,
+                    backgroundColor: const Color(0xFF0A4B84),
+                    elevation: 0,
+                    flexibleSpace: FlexibleSpaceBar(
+                      stretchModes: const [
+                        StretchMode.zoomBackground,
+                        StretchMode.fadeTitle,
+                      ],
+                      titlePadding: const EdgeInsets.only(
+                          left: 20, bottom: 16, right: 20),
+                      title: Column(
+                        mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SizedBox(height: 20),
-
-                          // Búsqueda
-                          BarraBusquedaReportes(
-                            controller: _busquedaController,
-                            onChanged: (value) {
-                              setState(() => _aplicarFiltros());
-                            },
-                            onClear: () {
-                              setState(() => _aplicarFiltros());
-                            },
-                          ),
-
-                          const SizedBox(height: 14),
-
-                          // Filtros de estado
-                          FiltrosEstadoChips(
-                            estadoSeleccionado: _estadoFiltro,
-                            onEstadoSeleccionado: (estado) {
-                              setState(() {
-                                _estadoFiltro = estado;
-                                _aplicarFiltros();
-                              });
-                            },
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Encabezado lista
-                          Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 20),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  _reportesFiltrados.isEmpty
-                                      ? 'Sin resultados'
-                                      : '${_reportesFiltrados.length} resultado${_reportesFiltrados.length == 1 ? '' : 's'}',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.grey.shade600,
-                                    letterSpacing: 0.3,
-                                  ),
-                                ),
-                                if (_estadoFiltro != null ||
-                                    _busquedaController.text.isNotEmpty)
-                                  GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        _estadoFiltro = null;
-                                        _busquedaController.clear();
-                                        _aplicarFiltros();
-                                      });
-                                    },
-                                    child: const Text(
-                                      'Limpiar filtros',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Color(0xFF0A4B84),
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                              ],
+                          const Text(
+                            'Mis Reportes',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 22,
+                              letterSpacing: -0.3,
                             ),
                           ),
-
-                          const SizedBox(height: 8),
-
-                          // Lista de reportes o estado vacío
-                          if (_reportesFiltrados.isEmpty)
-                            _buildEmptyState()
-                          else
-                            ...(_reportesFiltrados.map((reporte) {
-                              return ReporteCard(
-                                reporte: reporte,
-                                onTap: () => _mostrarDetalleReporte(reporte),
-                              );
-                            })),
-
-                          const SizedBox(height: 100),
+                          if (_currentUser != null)
+                            Text(
+                              _currentUser!.nombreCompletoTexto,
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.75),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                        ],
+                      ),
+                      background: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Container(
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [Color(0xFF0D5FA3), Color(0xFF0A4B84)],
+                              ),
+                            ),
+                          ),
+                          // Decorative circles
+                          Positioned(
+                            right: -30,
+                            top: -20,
+                            child: Container(
+                              width: 160,
+                              height: 160,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white.withOpacity(0.05),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            right: 40,
+                            top: 40,
+                            child: Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white.withOpacity(0.07),
+                              ),
+                            ),
+                          ),
+                          // Total badge top right
+                          if (!_isLoading)
+                            Positioned(
+                              right: 20,
+                              top: 20,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 7),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.18),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  '${_todosLosReportes.length} reportes',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                     ),
+                  ),
+
+                  // ─── Body Content ──────────────────────────────────────
+                  SliverToBoxAdapter(
+                    child: _isLoading
+                        ? const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 80),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: Color(0xFF0A4B84),
+                                strokeWidth: 2.5,
+                              ),
+                            ),
+                          )
+                        : FadeTransition(
+                            opacity: _fadeAnimation,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 20),
+
+                                // Búsqueda
+                                BarraBusquedaReportes(
+                                  controller: _busquedaController,
+                                  onChanged: (value) {
+                                    setState(() => _aplicarFiltros());
+                                  },
+                                  onClear: () {
+                                    setState(() => _aplicarFiltros());
+                                  },
+                                ),
+
+                                const SizedBox(height: 14),
+
+                                // Filtros de estado
+                                FiltrosEstadoChips(
+                                  estadoSeleccionado: _estadoFiltro,
+                                  onEstadoSeleccionado: (estado) {
+                                    setState(() {
+                                      _estadoFiltro = estado;
+                                      _aplicarFiltros();
+                                    });
+                                  },
+                                ),
+
+                                const SizedBox(height: 16),
+
+                                // Encabezado lista
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 20),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        _reportesFiltrados.isEmpty
+                                            ? 'Sin resultados'
+                                            : '${_reportesFiltrados.length} resultado${_reportesFiltrados.length == 1 ? '' : 's'}',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.grey.shade600,
+                                          letterSpacing: 0.3,
+                                        ),
+                                      ),
+                                      if (_estadoFiltro != null ||
+                                          _busquedaController.text.isNotEmpty)
+                                        GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              _estadoFiltro = null;
+                                              _busquedaController.clear();
+                                              _aplicarFiltros();
+                                            });
+                                          },
+                                          child: const Text(
+                                            'Limpiar filtros',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: Color(0xFF0A4B84),
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+
+                                const SizedBox(height: 8),
+
+                                // Lista de reportes o estado vacío
+                                if (_reportesFiltrados.isEmpty)
+                                  _buildEmptyState()
+                                else
+                                  ...(_reportesFiltrados.map((reporte) {
+                                    return ReporteCard(
+                                      reporte: reporte,
+                                      onTap: () =>
+                                          _mostrarDetalleReporte(reporte),
+                                    );
+                                  })),
+
+                                const SizedBox(height: 100),
+                              ],
+                            ),
+                          ),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -436,7 +456,8 @@ class _ReportesPageState extends State<ReportesPage>
                 });
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 decoration: BoxDecoration(
                   color: const Color(0xFF0A4B84),
                   borderRadius: BorderRadius.circular(24),

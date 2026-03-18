@@ -63,7 +63,8 @@ class CalendarioWidget extends StatelessWidget {
             children: [
               IconButton(
                 icon: const Icon(Icons.chevron_left),
-                onPressed: () => onPageChanged(DateTime(focusedDay.year, focusedDay.month - 1, 1)),
+                onPressed: () => onPageChanged(
+                    DateTime(focusedDay.year, focusedDay.month - 1, 1)),
               ),
               Expanded(
                 child: Center(
@@ -79,7 +80,8 @@ class CalendarioWidget extends StatelessWidget {
               ),
               IconButton(
                 icon: const Icon(Icons.chevron_right),
-                onPressed: () => onPageChanged(DateTime(focusedDay.year, focusedDay.month + 1, 1)),
+                onPressed: () => onPageChanged(
+                    DateTime(focusedDay.year, focusedDay.month + 1, 1)),
               ),
             ],
           ),
@@ -89,7 +91,8 @@ class CalendarioWidget extends StatelessWidget {
           LayoutBuilder(
             builder: (context, constraints) {
               final cellWidth = (constraints.maxWidth - 6 * 8) / 7;
-              final cellHeight = cellWidth * 1.05;
+              final cellHeight =
+                  cellWidth * 1.18; // Alto proporcionado y normal
               return GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -105,12 +108,16 @@ class CalendarioWidget extends StatelessWidget {
                   final isCurrentMonth = day.month == currentMonth;
                   return _DayCell(
                     day: day,
-                    citas: citasPorFecha[DateTime(day.year, day.month, day.day)] ?? [],
+                    citas:
+                        citasPorFecha[DateTime(day.year, day.month, day.day)] ??
+                            [],
                     isCurrentMonth: isCurrentMonth,
                     isSelected: _isSameDay(day, selectedDay),
                     onTap: () => onDaySelected(day, day),
                     onDrop: (cita) => onCitaDraggedToNewDate(cita, day),
-                    onCreate: onCreateAtDay != null ? () => onCreateAtDay!(day) : null,
+                    onCreate: onCreateAtDay != null
+                        ? () => onCreateAtDay!(day)
+                        : null,
                   );
                 },
               );
@@ -165,7 +172,8 @@ class _DayCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isWeekend = day.weekday == DateTime.saturday || day.weekday == DateTime.sunday;
+    final isWeekend =
+        day.weekday == DateTime.saturday || day.weekday == DateTime.sunday;
     final baseColor = isWeekend ? const Color(0xFFFFF7ED) : Colors.white;
 
     return DragTarget<Cita>(
@@ -201,50 +209,79 @@ class _DayCell extends StatelessWidget {
                           '${day.day}',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: isCurrentMonth ? const Color(0xFF0F172A) : const Color(0xFFCBD5E1),
+                            color: isCurrentMonth
+                                ? const Color(0xFF0F172A)
+                                : const Color(0xFFCBD5E1),
                           ),
                         ),
                         const Spacer(),
                         if (citas.isNotEmpty)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 2),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFCBD5E1)),
+                              color: const Color(0xFFE0E7FF),
+                              borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              '${citas.length}',
+                              '${citas.length} citas',
                               style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF0F172A),
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF4338CA),
                               ),
                             ),
                           ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    ..._buildCitasPreview(),
+                    const SizedBox(height: 4),
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          bottom: (onCreate != null && isSelected) ? 24.0 : 0.0,
+                        ),
+                        child: ClipRect(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: _buildCitasPreview(),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
                 if (onCreate != null && isSelected)
                   Positioned(
-                    bottom: 6,
-                    right: 6,
-                    child: IconButton(
-                      constraints: const BoxConstraints.tightFor(width: 28, height: 28),
-                      padding: EdgeInsets.zero,
-                      iconSize: 16,
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF0A4B84),
-                        side: const BorderSide(color: Color(0xFF0A4B84)),
-                        shape: const CircleBorder(),
+                    bottom: -2,
+                    right: -2,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 4,
+                            spreadRadius: 1,
+                          ),
+                        ],
                       ),
-                      onPressed: onCreate,
-                      icon: const Icon(Icons.add),
-                      tooltip: 'Nueva cita en este dia',
+                      child: IconButton(
+                        constraints: const BoxConstraints.tightFor(
+                            width: 26, height: 26),
+                        padding: EdgeInsets.zero,
+                        iconSize: 16,
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: const Color(0xFF0A4B84),
+                          side: const BorderSide(
+                              color: Color(0xFF0A4B84), width: 1.5),
+                          shape: const CircleBorder(),
+                        ),
+                        onPressed: onCreate,
+                        icon: const Icon(Icons.add),
+                        tooltip: 'Nueva cita en este dia',
+                      ),
                     ),
                   ),
               ],
@@ -257,16 +294,23 @@ class _DayCell extends StatelessWidget {
 
   List<Widget> _buildCitasPreview() {
     if (citas.isEmpty) return [const SizedBox.shrink()];
-    final preview = citas.take(2).toList();
-    final remaining = citas.length - preview.length;
+
+    // Mostramos máximo 2 o 3 tarjetas dependiendo del espacio, si son más mostramos "+ X más"
+    final int maxToShow = 2;
+    final preview = citas.take(maxToShow).toList();
+    final int remaining = citas.length - preview.length;
+
     return [
       ...preview.map((c) => _MiniCitaChip(cita: c)),
       if (remaining > 0)
         Padding(
-          padding: const EdgeInsets.only(top: 4),
+          padding: const EdgeInsets.only(top: 2),
           child: Text(
             '+$remaining más',
-            style: const TextStyle(fontSize: 11, color: Color(0xFF475569)),
+            style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF64748B)),
           ),
         ),
     ];
@@ -293,30 +337,34 @@ class _MiniCitaChip extends StatelessWidget {
 
   Widget _body({bool highlight = false, bool isFeedback = false}) {
     return Container(
-      width: isFeedback ? 170 : double.infinity,
-      margin: const EdgeInsets.only(bottom: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      width: isFeedback ? 180 : double.infinity,
+      margin: const EdgeInsets.only(bottom: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
       decoration: BoxDecoration(
-        color: highlight ? Colors.white : cita.estadoColor.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: cita.estadoColor.withOpacity(highlight ? 0.9 : 0.4), width: 1),
+        color: highlight ? Colors.white : cita.estadoColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+            color: cita.estadoColor.withOpacity(highlight ? 0.9 : 0.4),
+            width: 1),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
           Text(
-            DateFormat('HH:mm').format(cita.fechaHora),
+            DateFormat('h:mm a').format(cita.fechaHora),
             style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
               color: cita.estadoColor,
             ),
           ),
-          Text(
-            cita.servicioNombre ?? cita.servicio,
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              cita.servicioNombre ?? cita.servicio,
+              style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),

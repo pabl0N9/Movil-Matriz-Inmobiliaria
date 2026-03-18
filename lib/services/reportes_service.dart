@@ -8,7 +8,8 @@ import '../models/user_model.dart';
 
 /// Servicio para gestionar los reportes del propietario
 class ReportesService {
-  static const String baseUrl = 'http://localhost:5000/api/v1';
+  static const String baseUrl =
+      'https://inmotech-api-develop.onrender.com/api/v1';
   static const String reportesEndpoint = '/reportes-inmobiliarios';
 
   http.Client _client() {
@@ -60,8 +61,9 @@ class ReportesService {
     return null;
   }
 
-  /// Obtiene los reportes filtrados (opcionalmente por propietario)
-  Future<List<Reporte>> obtenerReportes({int? propietarioId}) async {
+  /// Obtiene los reportes filtrados (opcionalmente por propietario o administrativo asignado)
+  Future<List<Reporte>> obtenerReportes(
+      {int? propietarioId, int? administrativoId}) async {
     final client = _client();
     try {
       var url = '$baseUrl$reportesEndpoint';
@@ -76,12 +78,20 @@ class ReportesService {
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
-        final List<dynamic>? data = responseData['data'] is List 
-            ? responseData['data'] 
-            : (responseData['data'] is Map ? responseData['data']['data'] : null);
+        final List<dynamic>? data = responseData['data'] is List
+            ? responseData['data']
+            : (responseData['data'] is Map
+                ? responseData['data']['data']
+                : null);
 
         if (data != null) {
-          return data.map((json) => Reporte.fromJson(json)).toList();
+          var lista = data.map((json) => Reporte.fromJson(json)).toList();
+          if (administrativoId != null) {
+            lista = lista
+                .where((r) => r.idPersonaReporta == administrativoId)
+                .toList();
+          }
+          return lista;
         }
       }
       return [];
@@ -119,8 +129,10 @@ class ReportesService {
   }
 
   /// Calcula las estadísticas de los reportes
-  Future<Map<EstadoReporte, int>> obtenerEstadisticas({int? propietarioId}) async {
-    final reportes = await obtenerReportes(propietarioId: propietarioId);
+  Future<Map<EstadoReporte, int>> obtenerEstadisticas(
+      {int? propietarioId, int? administrativoId}) async {
+    final reportes = await obtenerReportes(
+        propietarioId: propietarioId, administrativoId: administrativoId);
     final estadisticas = <EstadoReporte, int>{
       EstadoReporte.pendiente: 0,
       EstadoReporte.enProgreso: 0,
@@ -140,8 +152,10 @@ class ReportesService {
     EstadoReporte? estado,
     String? query,
     int? propietarioId,
+    int? administrativoId,
   }) async {
-    var reportes = await obtenerReportes(propietarioId: propietarioId);
+    var reportes = await obtenerReportes(
+        propietarioId: propietarioId, administrativoId: administrativoId);
 
     // Filtrar por estado si se proporciona
     if (estado != null) {
@@ -166,15 +180,20 @@ class ReportesService {
     return reportes;
   }
 
-  /// Obtiene el total de seguimientos de todos los reportes de un propietario
-  Future<int> obtenerTotalSeguimientos({int? propietarioId}) async {
-    final reportes = await obtenerReportes(propietarioId: propietarioId);
-    return reportes.fold<int>(0, (sum, reporte) => sum + reporte.totalSeguimientos);
+  /// Obtiene el total de seguimientos de todos los reportes de un propietario o administrativo
+  Future<int> obtenerTotalSeguimientos(
+      {int? propietarioId, int? administrativoId}) async {
+    final reportes = await obtenerReportes(
+        propietarioId: propietarioId, administrativoId: administrativoId);
+    return reportes.fold<int>(
+        0, (sum, reporte) => sum + reporte.totalSeguimientos);
   }
 
-  /// Calcula el progreso promedio de todos los reportes de un propietario
-  Future<double> obtenerProgresoPromedio({int? propietarioId}) async {
-    final reportes = await obtenerReportes(propietarioId: propietarioId);
+  /// Calcula el progreso promedio de todos los reportes de un propietario o administrativo
+  Future<double> obtenerProgresoPromedio(
+      {int? propietarioId, int? administrativoId}) async {
+    final reportes = await obtenerReportes(
+        propietarioId: propietarioId, administrativoId: administrativoId);
     if (reportes.isEmpty) return 0.0;
 
     final progresoTotal = reportes.fold<double>(

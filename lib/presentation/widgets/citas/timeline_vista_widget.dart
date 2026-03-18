@@ -35,8 +35,22 @@ class TimelineVistaWidget extends StatelessWidget {
     }
 
     // Ordenar citas por fecha
-    final citasOrdenadas = List<Cita>.from(citas)
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    final futuras = citas.where((c) {
+      final d = DateTime(c.fechaHora.year, c.fechaHora.month, c.fechaHora.day);
+      return !d.isBefore(today);
+    }).toList()
       ..sort((a, b) => a.fechaHora.compareTo(b.fechaHora));
+
+    final pasadas = citas.where((c) {
+      final d = DateTime(c.fechaHora.year, c.fechaHora.month, c.fechaHora.day);
+      return d.isBefore(today);
+    }).toList()
+      ..sort((a, b) => b.fechaHora.compareTo(a.fechaHora));
+
+    final citasOrdenadas = [...futuras, ...pasadas];
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -55,7 +69,8 @@ class TimelineVistaWidget extends StatelessWidget {
           onEdit: () => onEdit(cita),
           onDelete: () => onDelete(cita),
           showEdits: showEdits,
-          onBell: () => onDelete(cita), // reutilizamos onDelete como campana en esta vista
+          onBell: () => onDelete(
+              cita), // reutilizamos onDelete como campana en esta vista
           onAddCalendar: null,
         );
       },
@@ -94,8 +109,8 @@ class TimelineItem extends StatelessWidget {
     final now = DateTime.now();
     final isPast = cita.fechaHora.isBefore(now);
     final isToday = cita.fechaHora.day == now.day &&
-                   cita.fechaHora.month == now.month &&
-                   cita.fechaHora.year == now.year;
+        cita.fechaHora.month == now.month &&
+        cita.fechaHora.year == now.year;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -105,11 +120,12 @@ class TimelineItem extends StatelessWidget {
           width: 60,
           child: Column(
             children: [
-              if (!isFirst) Container(
-                width: 2,
-                height: 20,
-                color: Colors.grey.shade300,
-              ),
+              if (!isFirst)
+                Container(
+                  width: 2,
+                  height: 20,
+                  color: Colors.grey.shade300,
+                ),
               Container(
                 width: 16,
                 height: 16,
@@ -122,18 +138,20 @@ class TimelineItem extends StatelessWidget {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: (isPast ? Colors.grey : cita.estadoColor).withOpacity(0.3),
+                      color: (isPast ? Colors.grey : cita.estadoColor)
+                          .withOpacity(0.3),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
                   ],
                 ),
               ),
-              if (!isLast) Container(
-                width: 2,
-                height: 60,
-                color: Colors.grey.shade300,
-              ),
+              if (!isLast)
+                Container(
+                  width: 2,
+                  height: 60,
+                  color: Colors.grey.shade300,
+                ),
             ],
           ),
         ),
@@ -161,33 +179,41 @@ class TimelineItem extends StatelessWidget {
                           Icon(
                             isToday ? Icons.today : Icons.event,
                             size: 18,
-                            color: isPast ? Colors.grey : const Color(0xFF0A4B84),
+                            color:
+                                isPast ? Colors.grey : const Color(0xFF0A4B84),
                           ),
                           const SizedBox(width: 8),
                           Text(
                             isToday
                                 ? 'Hoy'
-                                : DateFormat('dd MMM yyyy', 'es').format(cita.fechaHora),
+                                : DateFormat('dd MMM yyyy', 'es')
+                                    .format(cita.fechaHora),
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: isPast ? Colors.grey : const Color(0xFF0A4B84),
+                              color: isPast
+                                  ? Colors.grey
+                                  : const Color(0xFF0A4B84),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            DateFormat('HH:mm').format(cita.fechaHora),
+                            DateFormat('h:mm a').format(cita.fechaHora),
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: isPast ? Colors.grey : const Color(0xFF0A4B84),
+                              color: isPast
+                                  ? Colors.grey
+                                  : const Color(0xFF0A4B84),
                             ),
                           ),
                           const Spacer(),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: cita.estadoColor.withOpacity(isPast ? 0.5 : 1.0),
+                              color: cita.estadoColor
+                                  .withOpacity(isPast ? 0.5 : 1.0),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -222,7 +248,8 @@ class TimelineItem extends StatelessWidget {
                           Icon(
                             Icons.medical_services,
                             size: 16,
-                            color: isPast ? Colors.grey.shade500 : Colors.black54,
+                            color:
+                                isPast ? Colors.grey.shade500 : Colors.black54,
                           ),
                           const SizedBox(width: 6),
                           Expanded(
@@ -230,7 +257,9 @@ class TimelineItem extends StatelessWidget {
                               cita.servicioNombre ?? cita.servicio,
                               style: TextStyle(
                                 fontSize: 14,
-                                color: isPast ? Colors.grey.shade500 : Colors.black54,
+                                color: isPast
+                                    ? Colors.grey.shade500
+                                    : Colors.black54,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -245,27 +274,33 @@ class TimelineItem extends StatelessWidget {
                           Icon(
                             Icons.phone,
                             size: 16,
-                            color: isPast ? Colors.grey.shade500 : Colors.black54,
+                            color:
+                                isPast ? Colors.grey.shade500 : Colors.black54,
                           ),
                           const SizedBox(width: 6),
                           Text(
                             cita.telefono,
                             style: TextStyle(
                               fontSize: 14,
-                              color: isPast ? Colors.grey.shade500 : Colors.black54,
+                              color: isPast
+                                  ? Colors.grey.shade500
+                                  : Colors.black54,
                             ),
                           ),
                         ],
                       ),
 
-                      if (cita.inmuebleDireccion != null && cita.inmuebleDireccion!.isNotEmpty) ...[
+                      if (cita.inmuebleDireccion != null &&
+                          cita.inmuebleDireccion!.isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Row(
                           children: [
                             Icon(
                               Icons.location_on,
                               size: 16,
-                              color: isPast ? Colors.grey.shade500 : Colors.black54,
+                              color: isPast
+                                  ? Colors.grey.shade500
+                                  : Colors.black54,
                             ),
                             const SizedBox(width: 6),
                             Expanded(
@@ -273,7 +308,9 @@ class TimelineItem extends StatelessWidget {
                                 cita.inmuebleDireccion!,
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: isPast ? Colors.grey.shade500 : Colors.black54,
+                                  color: isPast
+                                      ? Colors.grey.shade500
+                                      : Colors.black54,
                                 ),
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -287,7 +324,8 @@ class TimelineItem extends StatelessWidget {
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
                                 color: Colors.grey.shade100,
                                 borderRadius: BorderRadius.circular(12),
@@ -311,7 +349,8 @@ class TimelineItem extends StatelessWidget {
                           cita.detalles,
                           style: TextStyle(
                             fontSize: 13,
-                            color: isPast ? Colors.grey.shade500 : Colors.black54,
+                            color:
+                                isPast ? Colors.grey.shade500 : Colors.black54,
                             fontStyle: FontStyle.italic,
                           ),
                           maxLines: 2,
@@ -328,7 +367,9 @@ class TimelineItem extends StatelessWidget {
                             icon: Icon(
                               Icons.swap_horiz,
                               size: 20,
-                              color: isPast ? Colors.grey : const Color(0xFF0A4B84),
+                              color: isPast
+                                  ? Colors.grey
+                                  : const Color(0xFF0A4B84),
                             ),
                             onPressed: isPast ? null : onEstadoChange,
                             tooltip: 'Reagendar',
@@ -340,7 +381,9 @@ class TimelineItem extends StatelessWidget {
                             icon: Icon(
                               Icons.cancel,
                               size: 20,
-                              color: isPast ? Colors.grey : const Color(0xFFEF5350),
+                              color: isPast
+                                  ? Colors.grey
+                                  : const Color(0xFFEF5350),
                             ),
                             onPressed: isPast ? null : onEdit,
                             tooltip: 'Cancelar',
@@ -353,7 +396,9 @@ class TimelineItem extends StatelessWidget {
                               icon: Icon(
                                 Icons.notifications_active,
                                 size: 20,
-                                color: isPast ? Colors.grey : const Color(0xFFFFA000),
+                                color: isPast
+                                    ? Colors.grey
+                                    : const Color(0xFFFFA000),
                               ),
                               onPressed: isPast ? null : onBell,
                               tooltip: 'Activar recordatorios',

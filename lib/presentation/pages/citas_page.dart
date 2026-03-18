@@ -17,6 +17,7 @@ import '../widgets/citas/lista_vista_widget.dart';
 import '../widgets/citas/timeline_vista_widget.dart';
 import '../../services/notification_service.dart';
 import 'package:intl/intl.dart';
+import '../widgets/header.dart'; // <-- Añadir import del header
 
 class CitasPage extends StatefulWidget {
   const CitasPage({super.key});
@@ -80,7 +81,8 @@ class _CitasPageState extends State<CitasPage> {
   void _actualizarCitasPorFecha() {
     _citasPorFecha.clear();
     for (var cita in _citasFiltradas) {
-      final fecha = DateTime(cita.fechaHora.year, cita.fechaHora.month, cita.fechaHora.day);
+      final fecha = DateTime(
+          cita.fechaHora.year, cita.fechaHora.month, cita.fechaHora.day);
       _citasPorFecha.putIfAbsent(fecha, () => []).add(cita);
     }
   }
@@ -93,10 +95,10 @@ class _CitasPageState extends State<CitasPage> {
       final query = _busquedaController.text.toLowerCase();
       resultado = resultado.where((c) {
         return c.nombreCompleto.toLowerCase().contains(query) ||
-               c.telefono.contains(query) ||
-               c.correo.toLowerCase().contains(query) ||
-               c.numeroDocumento.contains(query) ||
-               c.servicio.toLowerCase().contains(query);
+            c.telefono.contains(query) ||
+            c.correo.toLowerCase().contains(query) ||
+            c.numeroDocumento.contains(query) ||
+            c.servicio.toLowerCase().contains(query);
       }).toList();
     }
 
@@ -109,7 +111,7 @@ class _CitasPageState extends State<CitasPage> {
     if (_fechaInicioFiltro != null && _fechaFinFiltro != null) {
       resultado = resultado.where((c) {
         return c.fechaHora.isAfter(_fechaInicioFiltro!) &&
-               c.fechaHora.isBefore(_fechaFinFiltro!.add(const Duration(days: 1)));
+            c.fechaHora.isBefore(_fechaFinFiltro!.add(const Duration(days: 1)));
       }).toList();
     }
 
@@ -126,7 +128,8 @@ class _CitasPageState extends State<CitasPage> {
 
   @override
   Widget build(BuildContext context) {
-    final citasDelDiaSeleccionado = _obtenerCitasDelDia(_selectedDay ?? _focusedDay);
+    final citasDelDiaSeleccionado =
+        _obtenerCitasDelDia(_selectedDay ?? _focusedDay);
 
     return DragTarget<Cita>(
       onWillAccept: (data) => true,
@@ -146,112 +149,125 @@ class _CitasPageState extends State<CitasPage> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: isMorning
-                    ? [const Color(0xFFE3F2FD), const Color(0xFFF5F5F5)] // Light blue morning
+                    ? [
+                        const Color(0xFFE3F2FD),
+                        const Color(0xFFF5F5F5)
+                      ] // Light blue morning
                     : isAfternoon
-                        ? [const Color(0xFFFFF8E1), const Color(0xFFF5F5F5)] // Light yellow afternoon
-                        : [const Color(0xFFE8EAF6), const Color(0xFFF5F5F5)], // Light purple evening
+                        ? [
+                            const Color(0xFFFFF8E1),
+                            const Color(0xFFF5F5F5)
+                          ] // Light yellow afternoon
+                        : [
+                            const Color(0xFFE8EAF6),
+                            const Color(0xFFF5F5F5)
+                          ], // Light purple evening
               ),
             ),
             child: Column(
-            children: [
-              // Estadísticas
-              Padding(
-                padding: const EdgeInsets.only(top: 24.0),
-                child: EstadisticasCards(
-                  estadisticas: _estadisticas,
-                  total: _todasLasCitas.length,
-                  onEstadoTap: (estado) {
+              children: [
+                // Navbar
+                const CustomHeader(title: 'Citas'),
+
+                // Estadísticas
+                Padding(
+                  padding: const EdgeInsets.only(top: 16.0),
+                  child: EstadisticasCards(
+                    estadisticas: _estadisticas,
+                    total: _todasLasCitas.length,
+                    onEstadoTap: (estado) {
+                      setState(() {
+                        _estadoFiltro = estado;
+                        _aplicarFiltros();
+                      });
+                    },
+                  ),
+                ),
+
+                // Barra de búsqueda mejorada
+                BarraBusquedaMejorada(
+                  controller: _busquedaController,
+                  onChanged: (value) {
                     setState(() {
-                      _estadoFiltro = estado;
                       _aplicarFiltros();
                     });
                   },
-                ),
-              ),
-
-              // Barra de búsqueda mejorada
-              BarraBusquedaMejorada(
-                controller: _busquedaController,
-                onChanged: (value) {
-                  setState(() {
-                    _aplicarFiltros();
-                  });
-                },
-                onSubmitted: (value) {
-                  setState(() {
-                    _aplicarFiltros();
-                  });
-                },
-                onClear: () {
-                  _busquedaController.clear();
-                  setState(() {
-                    _aplicarFiltros();
-                  });
-                },
-                suggestions: _obtenerSugerenciasBusqueda(),
-              ),
-
-              // Botón cambiar vista
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: SegmentedButton<int>(
-                        segments: const [
-                          ButtonSegment(
-                            value: 0,
-                            label: Text('Calendario'),
-                            icon: Icon(Icons.calendar_month),
-                          ),
-                          ButtonSegment(
-                            value: 1,
-                            label: Text('Lista'),
-                            icon: Icon(Icons.list),
-                          ),
-                          ButtonSegment(
-                            value: 2,
-                            label: Text('Timeline'),
-                            icon: Icon(Icons.timeline),
-                          ),
-                        ],
-                        selected: {_vistaSeleccionada},
-                        onSelectionChanged: (Set<int> newSelection) {
-                          setState(() {
-                            _vistaSeleccionada = newSelection.first;
-                          });
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              // Contenido principal
-              Expanded(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  transitionBuilder: (Widget child, Animation<double> animation) {
-                    return FadeTransition(
-                      opacity: animation,
-                      child: SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0.1, 0.0),
-                          end: Offset.zero,
-                        ).animate(CurvedAnimation(
-                          parent: animation,
-                          curve: Curves.easeOut,
-                        )),
-                        child: child,
-                      ),
-                    );
+                  onSubmitted: (value) {
+                    setState(() {
+                      _aplicarFiltros();
+                    });
                   },
-                  child: _buildVistaSeleccionada(citasDelDiaSeleccionado),
+                  onClear: () {
+                    _busquedaController.clear();
+                    setState(() {
+                      _aplicarFiltros();
+                    });
+                  },
+                  suggestions: _obtenerSugerenciasBusqueda(),
                 ),
-              ),
-            ],
+
+                // Botón cambiar vista
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: SegmentedButton<int>(
+                          segments: const [
+                            ButtonSegment(
+                              value: 0,
+                              label: Text('Calendario'),
+                              icon: Icon(Icons.calendar_month),
+                            ),
+                            ButtonSegment(
+                              value: 1,
+                              label: Text('Lista'),
+                              icon: Icon(Icons.list),
+                            ),
+                            ButtonSegment(
+                              value: 2,
+                              label: Text('Timeline'),
+                              icon: Icon(Icons.timeline),
+                            ),
+                          ],
+                          selected: {_vistaSeleccionada},
+                          onSelectionChanged: (Set<int> newSelection) {
+                            setState(() {
+                              _vistaSeleccionada = newSelection.first;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                // Contenido principal
+                Expanded(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    transitionBuilder:
+                        (Widget child, Animation<double> animation) {
+                      return FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0.1, 0.0),
+                            end: Offset.zero,
+                          ).animate(CurvedAnimation(
+                            parent: animation,
+                            curve: Curves.easeOut,
+                          )),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: _buildVistaSeleccionada(citasDelDiaSeleccionado),
+                  ),
+                ),
+              ],
             ),
           ),
           floatingActionButton: Stack(
@@ -304,7 +320,11 @@ class _CitasPageState extends State<CitasPage> {
                     },
                     backgroundColor: Colors.green,
                     child: Icon(
-                      _vistaSeleccionada == 0 ? Icons.list : _vistaSeleccionada == 1 ? Icons.timeline : Icons.calendar_month,
+                      _vistaSeleccionada == 0
+                          ? Icons.list
+                          : _vistaSeleccionada == 1
+                              ? Icons.timeline
+                              : Icons.calendar_month,
                       color: Colors.white,
                     ),
                     tooltip: 'Cambiar vista',
@@ -323,7 +343,9 @@ class _CitasPageState extends State<CitasPage> {
                         },
                         backgroundColor: Colors.purple,
                         child: Icon(
-                          themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                          themeProvider.isDarkMode
+                              ? Icons.light_mode
+                              : Icons.dark_mode,
                           color: Colors.white,
                         ),
                         tooltip: 'Cambiar tema',
@@ -336,7 +358,8 @@ class _CitasPageState extends State<CitasPage> {
                 bottom: 16,
                 right: 16,
                 child: GestureDetector(
-                  onLongPress: () => setState(() => _fabExpanded = !_fabExpanded),
+                  onLongPress: () =>
+                      setState(() => _fabExpanded = !_fabExpanded),
                   child: FloatingActionButton.extended(
                     onPressed: _fabExpanded
                         ? () => setState(() => _fabExpanded = false)
@@ -350,8 +373,10 @@ class _CitasPageState extends State<CitasPage> {
                     label: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 200),
                       child: _fabExpanded
-                          ? const Text('Cerrar', style: TextStyle(color: Colors.white))
-                          : const Text('Nueva Cita', style: TextStyle(color: Colors.white)),
+                          ? const Text('Cerrar',
+                              style: TextStyle(color: Colors.white))
+                          : const Text('Nueva Cita',
+                              style: TextStyle(color: Colors.white)),
                     ),
                     extendedIconLabelSpacing: _fabExpanded ? 4 : null,
                   ),
@@ -415,7 +440,8 @@ class _CitasPageState extends State<CitasPage> {
                   decoration: candidateData.isNotEmpty
                       ? BoxDecoration(
                           color: const Color(0xFF0A4B84).withOpacity(0.1),
-                          border: Border.all(color: const Color(0xFF0A4B84), width: 2),
+                          border: Border.all(
+                              color: const Color(0xFF0A4B84), width: 2),
                           borderRadius: BorderRadius.circular(12),
                         )
                       : null,
@@ -478,10 +504,12 @@ class _CitasPageState extends State<CitasPage> {
 
   // CRUD Operations
 
-  Future<void> _mostrarDialogoCrearCita([DateTime? fechaPreseleccionada]) async {
+  Future<void> _mostrarDialogoCrearCita(
+      [DateTime? fechaPreseleccionada]) async {
     print('📱 Abriendo diálogo de crear cita...');
 
-    final Map<String, dynamic>? citaData = await showModalBottomSheet<Map<String, dynamic>>(
+    final Map<String, dynamic>? citaData =
+        await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -498,6 +526,7 @@ class _CitasPageState extends State<CitasPage> {
           fechaHora: citaData['fechaHora'],
           servicio: citaData['servicio'],
           detalles: citaData['detalles'],
+          idInmueble: citaData['idInmueble'] ?? 1,
         );
 
         print('✅ Respuesta del servicio: $nuevaCita');
@@ -522,22 +551,26 @@ class _CitasPageState extends State<CitasPage> {
   }
 
   Future<void> _mostrarDialogoEditarCita(Cita cita) async {
-    _mostrarMensaje('Para cambiar tu cita usa Reagendar o Cancelar.', Colors.orange);
+    _mostrarMensaje(
+        'Para cambiar tu cita usa Reagendar o Cancelar.', Colors.orange);
   }
 
   void _crearCitaEnFecha(DateTime fecha) {
     _mostrarDialogoCrearCita(fecha);
   }
+
   Future<void> _mostrarDialogoVerCita(Cita cita) async {
     await showGeneralDialog(
       context: context,
       barrierDismissible: true,
       barrierLabel: '',
       transitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (context, animation, secondaryAnimation) => VerCitaDialog(cita: cita),
+      pageBuilder: (context, animation, secondaryAnimation) =>
+          VerCitaDialog(cita: cita),
       transitionBuilder: (context, animation, secondaryAnimation, child) {
         return ScaleTransition(
-          scale: Tween<double>(begin: 0.8, end: 1.0).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
+          scale: Tween<double>(begin: 0.8, end: 1.0).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOut)),
           child: FadeTransition(
             opacity: animation,
             child: child,
@@ -571,7 +604,8 @@ class _CitasPageState extends State<CitasPage> {
   }
 
   Future<void> _reagendarConFechaActual(Cita cita) async {
-    final fecha = DateTime(cita.fechaHora.year, cita.fechaHora.month, cita.fechaHora.day);
+    final fecha =
+        DateTime(cita.fechaHora.year, cita.fechaHora.month, cita.fechaHora.day);
     await _reagendarCita(cita, fecha);
   }
 
@@ -641,7 +675,8 @@ class _CitasPageState extends State<CitasPage> {
         estadoSeleccionado: _estadoFiltro,
         fechaInicio: _fechaInicioFiltro,
         fechaFin: _fechaFinFiltro,
-        onFiltrosAplicados: (estado, fechaInicio, fechaFin, servicio, soloUrgentes, precioMin, precioMax) {
+        onFiltrosAplicados: (estado, fechaInicio, fechaFin, servicio,
+            soloUrgentes, precioMin, precioMax) {
           setState(() {
             _estadoFiltro = estado;
             _fechaInicioFiltro = fechaInicio;
@@ -654,15 +689,18 @@ class _CitasPageState extends State<CitasPage> {
     );
   }
 
-  Future<void> _mostrarBottomSheetReagendar(Cita cita, DateTime fechaDestino) async {
+  Future<void> _mostrarBottomSheetReagendar(
+      Cita cita, DateTime fechaDestino) async {
     if (!mounted) return;
     final idServicio = _mapServicioToId(cita.servicio);
 
     // helper para bloquear fines de semana
-    bool _esFinDeSemana(DateTime d) => d.weekday == DateTime.saturday || d.weekday == DateTime.sunday;
+    bool _esFinDeSemana(DateTime d) =>
+        d.weekday == DateTime.saturday || d.weekday == DateTime.sunday;
 
     DateTime fechaSeleccionada = fechaDestino;
-    List<TimeOfDay> horarios = await _citasService.obtenerHorariosDisponibles(fechaSeleccionada, idServicio: idServicio);
+    List<TimeOfDay> horarios = await _citasService
+        .obtenerHorariosDisponibles(fechaSeleccionada, idServicio: idServicio);
     if (horarios.isEmpty) {
       _mostrarMensaje('No hay horarios disponibles para esa fecha', Colors.red);
       return;
@@ -695,7 +733,9 @@ class _CitasPageState extends State<CitasPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Reagendar cita', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                      const Text('Reagendar cita',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 18)),
                       IconButton(
                         icon: const Icon(Icons.close),
                         onPressed: () => Navigator.pop(context, false),
@@ -706,21 +746,29 @@ class _CitasPageState extends State<CitasPage> {
                   Row(
                     children: [
                       Expanded(
-                        child: Text('Fecha: ${DateFormat('dd MMM yyyy', 'es').format(fechaSeleccionada)}'),
+                        child: Text(
+                            'Fecha: ${DateFormat('dd MMM yyyy', 'es').format(fechaSeleccionada)}'),
                       ),
                       TextButton.icon(
                         onPressed: () async {
+                          final now = DateTime.now();
+                          final fechaInicial = fechaSeleccionada.isBefore(now)
+                              ? now
+                              : fechaSeleccionada;
                           final nuevaFecha = await showDatePicker(
                             context: context,
-                            initialDate: fechaSeleccionada,
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                            initialDate: fechaInicial,
+                            firstDate: now,
+                            lastDate: now.add(const Duration(days: 365)),
                             selectableDayPredicate: (d) => !_esFinDeSemana(d),
                           );
                           if (nuevaFecha != null) {
-                            final nuevosHorarios = await _citasService.obtenerHorariosDisponibles(nuevaFecha, idServicio: idServicio);
+                            final nuevosHorarios = await _citasService
+                                .obtenerHorariosDisponibles(nuevaFecha,
+                                    idServicio: idServicio);
                             if (nuevosHorarios.isEmpty) {
-                              _mostrarMensaje('No hay horarios en esa fecha', Colors.red);
+                              _mostrarMensaje(
+                                  'No hay horarios en esa fecha', Colors.red);
                               return;
                             }
                             setModalState(() {
@@ -744,7 +792,8 @@ class _CitasPageState extends State<CitasPage> {
                       return ChoiceChip(
                         label: Text(hora.format(context)),
                         selected: selected,
-                        onSelected: (_) => setModalState(() => horaSeleccionada = hora),
+                        onSelected: (_) =>
+                            setModalState(() => horaSeleccionada = hora),
                       );
                     }).toList(),
                   ),
@@ -761,7 +810,15 @@ class _CitasPageState extends State<CitasPage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () => Navigator.pop(context, true),
+                      onPressed: () {
+                        if (motivo.trim().length < 10) {
+                          _mostrarMensaje(
+                              'El motivo debe tener al menos 10 caracteres',
+                              Colors.red);
+                          return;
+                        }
+                        Navigator.pop(context, true);
+                      },
                       icon: const Icon(Icons.check),
                       label: const Text('Confirmar reagendamiento'),
                       style: ElevatedButton.styleFrom(
@@ -780,7 +837,8 @@ class _CitasPageState extends State<CitasPage> {
 
     if (confirmar != true) return;
     if (motivo.trim().length < 10) {
-      _mostrarMensaje('El motivo debe tener al menos 10 caracteres', Colors.red);
+      _mostrarMensaje(
+          'El motivo debe tener al menos 10 caracteres', Colors.red);
       return;
     }
 
@@ -852,11 +910,13 @@ class _CitasPageState extends State<CitasPage> {
 
     if (confirmar != true) return;
     if (motivoController.text.trim().length < 10) {
-      _mostrarMensaje('El motivo debe tener al menos 10 caracteres', Colors.red);
+      _mostrarMensaje(
+          'El motivo debe tener al menos 10 caracteres', Colors.red);
       return;
     }
 
-    final exito = await _citasService.cancelarCita(cita, motivoController.text.trim());
+    final exito =
+        await _citasService.cancelarCita(cita, motivoController.text.trim());
     if (exito && mounted) {
       _mostrarMensaje('Cita cancelada', Colors.green);
       _cargarCitas();
@@ -867,7 +927,8 @@ class _CitasPageState extends State<CitasPage> {
 
   Future<void> _activarCampana(Cita cita) async {
     try {
-      await NotificationService().scheduleAdvancedAppointmentNotifications(cita);
+      await NotificationService()
+          .scheduleAdvancedAppointmentNotifications(cita);
       _mostrarMensaje('Recordatorios activados', Colors.green);
     } catch (e) {
       _mostrarMensaje('No se pudieron programar notificaciones', Colors.red);
@@ -878,5 +939,3 @@ class _CitasPageState extends State<CitasPage> {
     await _mostrarBottomSheetReagendar(cita, nuevaFecha);
   }
 }
-
-

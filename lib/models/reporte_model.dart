@@ -214,6 +214,7 @@ class Reporte {
   final String referencia;
   final String descripcion;
   final String seguimientoGeneral;
+  final int? idPersonaReporta;
   final List<RubroReporte> rubros;
   final List<String> imagenes;
   final List<String> archivos;
@@ -231,6 +232,7 @@ class Reporte {
     required this.referencia,
     required this.descripcion,
     required this.seguimientoGeneral,
+    this.idPersonaReporta,
     required this.rubros,
     required this.imagenes,
     required this.archivos,
@@ -245,14 +247,18 @@ class Reporte {
       tipoInmueble: json['inmueble_categoria'] ?? json['tipoInmueble'] ?? '',
       propietario: json['propietario_nombre'] ?? json['propietario'] ?? '',
       tipoReporte: json['tipo_reporte'] ?? json['tipoReporte'] ?? '',
-      fecha: json['fecha_creacion'] != null 
-          ? DateTime.parse(json['fecha_creacion']) 
-          : (json['fecha'] != null ? DateTime.parse(json['fecha']) : DateTime.now()),
+      fecha: json['fecha_creacion'] != null
+          ? DateTime.parse(json['fecha_creacion'])
+          : (json['fecha'] != null
+              ? DateTime.parse(json['fecha'])
+              : DateTime.now()),
       estado: EstadoReporteExtension.fromString(json['estado'] ?? 'Pendiente'),
       responsable: json['reporta_nombre'] ?? json['responsable'] ?? '',
       referencia: json['inmueble_referencia'] ?? json['referencia'] ?? '',
       descripcion: json['descripcion'] ?? '',
-      seguimientoGeneral: json['seguimiento_general'] ?? json['seguimientoGeneral'] ?? '',
+      seguimientoGeneral:
+          json['seguimiento_general'] ?? json['seguimientoGeneral'] ?? '',
+      idPersonaReporta: json['id_persona_reporta'] ?? json['idPersonaReporta'],
       rubros: (json['rubros'] as List<dynamic>?)
               ?.map((r) => RubroReporte.fromJson(r))
               .toList() ??
@@ -283,6 +289,7 @@ class Reporte {
       'referencia': referencia,
       'descripcion': descripcion,
       'seguimientoGeneral': seguimientoGeneral,
+      'idPersonaReporta': idPersonaReporta,
       'rubros': rubros.map((r) => r.toJson()).toList(),
       'imagenes': imagenes,
       'archivos': archivos,
@@ -329,6 +336,7 @@ class Reporte {
     String? referencia,
     String? descripcion,
     String? seguimientoGeneral,
+    int? idPersonaReporta,
     List<RubroReporte>? rubros,
     List<String>? imagenes,
     List<String>? archivos,
@@ -346,6 +354,7 @@ class Reporte {
       referencia: referencia ?? this.referencia,
       descripcion: descripcion ?? this.descripcion,
       seguimientoGeneral: seguimientoGeneral ?? this.seguimientoGeneral,
+      idPersonaReporta: idPersonaReporta ?? this.idPersonaReporta,
       rubros: rubros ?? this.rubros,
       imagenes: imagenes ?? this.imagenes,
       archivos: archivos ?? this.archivos,

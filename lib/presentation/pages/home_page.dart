@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'property_details.dart';
-import '../widgets/menu.dart';
 import '../widgets/header.dart';
 
 /// 📌 Pantalla que muestra la lista de inmuebles con menú inferior
@@ -12,17 +11,6 @@ class TusInmueblesScreen extends StatefulWidget {
 }
 
 class _TusInmueblesScreenState extends State<TusInmueblesScreen> {
-  int _selectedIndex = 0;
-
-  void _onItemTapped(int index) {
-    setState(() => _selectedIndex = index);
-    if (index == 1) {
-      Navigator.pushNamed(context, '/citas');
-    } else if (index == 2) {
-      Navigator.pushNamed(context, '/reports');
-    }
-  }
-
   Widget _buildPropertyCard(
     BuildContext context, {
     required String image,
@@ -66,7 +54,8 @@ class _TusInmueblesScreenState extends State<TusInmueblesScreen> {
                       return Container(
                         height: 150,
                         color: Colors.grey[300],
-                        child: const Icon(Icons.home, size: 50, color: Colors.grey),
+                        child: const Icon(Icons.home,
+                            size: 50, color: Colors.grey),
                       );
                     },
                   ),
@@ -76,7 +65,8 @@ class _TusInmueblesScreenState extends State<TusInmueblesScreen> {
                     top: 8,
                     right: 8,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.blue,
                         borderRadius: BorderRadius.circular(4),
@@ -139,7 +129,8 @@ class _TusInmueblesScreenState extends State<TusInmueblesScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => PropertyDetailScreen(imagePath: image),
+                            builder: (context) =>
+                                PropertyDetailScreen(imagePath: image),
                           ),
                         );
                       },
@@ -308,26 +299,7 @@ class _TusInmueblesScreenState extends State<TusInmueblesScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        selectedItemColor: const Color.fromRGBO(0, 120, 206, 1),
-        unselectedItemColor: const Color.fromRGBO(97, 138, 133, 1),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Inicio',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            label: 'Citas',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.build),
-            label: 'Reportes',
-          ),
-        ],
-      ),
+      // ⚠️ El BottomNavigationBar ha sido removido de aquí. Ahora vive en MainLayoutPage.
     );
   }
 }
@@ -352,7 +324,8 @@ class _HoverCardState extends State<_HoverCard> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeInOut,
-        transform: _isHovered ? (Matrix4.identity()..scale(1.03)) : Matrix4.identity(),
+        transform:
+            _isHovered ? (Matrix4.identity()..scale(1.03)) : Matrix4.identity(),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
           boxShadow: _isHovered

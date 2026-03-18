@@ -46,11 +46,20 @@ class ListaVistaWidget extends StatelessWidget {
     // Agrupar citas por fecha
     final citasAgrupadas = <DateTime, List<Cita>>{};
     for (var cita in citas) {
-      final fecha = DateTime(cita.fechaHora.year, cita.fechaHora.month, cita.fechaHora.day);
+      final fecha = DateTime(
+          cita.fechaHora.year, cita.fechaHora.month, cita.fechaHora.day);
       citasAgrupadas.putIfAbsent(fecha, () => []).add(cita);
     }
 
-    final fechasOrdenadas = citasAgrupadas.keys.toList()..sort();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    final futuras =
+        citasAgrupadas.keys.where((d) => !d.isBefore(today)).toList()..sort();
+    final pasadas = citasAgrupadas.keys.where((d) => d.isBefore(today)).toList()
+      ..sort((a, b) => b.compareTo(a));
+
+    final fechasOrdenadas = [...futuras, ...pasadas];
 
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -108,7 +117,8 @@ class ListaVistaWidget extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: cita.estadoColor,
                       borderRadius: BorderRadius.circular(12),
@@ -127,7 +137,7 @@ class ListaVistaWidget extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        DateFormat('HH:mm').format(cita.fechaHora),
+                        DateFormat('h:mm a').format(cita.fechaHora),
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -165,27 +175,32 @@ class ListaVistaWidget extends StatelessWidget {
                     style: const TextStyle(fontSize: 13, color: Colors.black54),
                   ),
                   const SizedBox(width: 12),
-                  const Icon(Icons.medical_services, size: 14, color: Colors.black54),
+                  const Icon(Icons.medical_services,
+                      size: 14, color: Colors.black54),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       cita.servicioNombre ?? cita.servicio,
-                      style: const TextStyle(fontSize: 13, color: Colors.black54),
+                      style:
+                          const TextStyle(fontSize: 13, color: Colors.black54),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
-              if (cita.inmuebleDireccion != null && cita.inmuebleDireccion!.isNotEmpty) ...[
+              if (cita.inmuebleDireccion != null &&
+                  cita.inmuebleDireccion!.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Icon(Icons.location_on, size: 14, color: Colors.black54),
+                    const Icon(Icons.location_on,
+                        size: 14, color: Colors.black54),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
                         cita.inmuebleDireccion!,
-                        style: const TextStyle(fontSize: 13, color: Colors.black54),
+                        style: const TextStyle(
+                            fontSize: 13, color: Colors.black54),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -197,7 +212,8 @@ class ListaVistaWidget extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(12),

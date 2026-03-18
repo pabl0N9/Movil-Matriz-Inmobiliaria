@@ -12,7 +12,8 @@ import 'appointment_integration_service.dart';
 
 class CitasService {
   // Para Flutter Web usar 127.0.0.1
-  static const String baseUrl = 'http://localhost:5000/api/v1';
+  static const String baseUrl =
+      'https://inmotech-api-develop.onrender.com/api/v1';
   static const String citasEndpoint = '/citas';
   static const String misCitasEndpoint = '/citas/mis-citas';
 
@@ -119,8 +120,7 @@ class CitasService {
               nombreCompleto: base.nombreCompleto.isNotEmpty
                   ? null
                   : user.nombreCompletoTexto,
-              telefono:
-                  base.telefono.isNotEmpty ? null : user.telefonoSeguro,
+              telefono: base.telefono.isNotEmpty ? null : user.telefonoSeguro,
               correo: base.correo.isNotEmpty ? null : user.correoSeguro,
               numeroDocumento: base.numeroDocumento.isNotEmpty
                   ? null
@@ -156,6 +156,7 @@ class CitasService {
     required DateTime fechaHora,
     required String servicio,
     required String detalles,
+    int idInmueble = 1,
   }) async {
     final client = _client();
     try {
@@ -165,17 +166,21 @@ class CitasService {
         return null;
       }
 
-      final idServicio = _mapServicioToId(servicio); // default a Visita a Propiedad
+      final idServicio =
+          _mapServicioToId(servicio); // default a Visita a Propiedad
 
       // Separar nombres y apellidos (logica simple)
       final partesNombre = user.nombreCompleto.trim().split(' ');
-      final nombreCompleto = partesNombre.isNotEmpty ? partesNombre.first : 'Usuario';
-      final apellidoCompleto =
-          partesNombre.length > 1 ? partesNombre.sublist(1).join(' ') : 'Sin Apellido';
+      final nombreCompleto =
+          partesNombre.isNotEmpty ? partesNombre.first : 'Usuario';
+      final apellidoCompleto = partesNombre.length > 1
+          ? partesNombre.sublist(1).join(' ')
+          : 'Sin Apellido';
 
       final citaData = {
-        'tipo_documento':
-            user.tipoDocumentoSeguro.isNotEmpty ? user.tipoDocumentoSeguro : 'CC',
+        'tipo_documento': user.tipoDocumentoSeguro.isNotEmpty
+            ? user.tipoDocumentoSeguro
+            : 'CC',
         'numero_documento': user.numeroDocumentoSeguro.isNotEmpty
             ? user.numeroDocumentoSeguro
             : user.id.toString().padLeft(10, '0'),
@@ -185,13 +190,13 @@ class CitasService {
         'telefono': user.telefonoSeguro.isNotEmpty
             ? user.telefonoSeguro
             : '+573000000000',
-        'id_inmueble': 1,
+        'id_inmueble': idInmueble,
         'id_servicio': idServicio,
         'fecha_cita': fechaHora.toIso8601String().split('T')[0],
         'hora_inicio':
             '${fechaHora.hour.toString().padLeft(2, '0')}:${fechaHora.minute.toString().padLeft(2, '0')}',
         'hora_fin':
-            '${(fechaHora.hour + 1).toString().padLeft(2, '0')}:${fechaHora.minute.toString().padLeft(2, '0')}',
+            '${fechaHora.add(const Duration(minutes: 30)).hour.toString().padLeft(2, '0')}:${fechaHora.add(const Duration(minutes: 30)).minute.toString().padLeft(2, '0')}',
         'observaciones': detalles,
         'id_estado_cita': 1, // solicitada
       };
@@ -211,19 +216,22 @@ class CitasService {
 
         // Programar notificaciones y calendario
         try {
-          await NotificationService().scheduleAdvancedAppointmentNotifications(nuevaCita);
+          await NotificationService()
+              .scheduleAdvancedAppointmentNotifications(nuevaCita);
         } catch (e) {
           debugPrint('Error al programar notificaciones: $e');
         }
         try {
-          await AppointmentIntegrationService().processConfirmedAppointment(nuevaCita);
+          await AppointmentIntegrationService()
+              .processConfirmedAppointment(nuevaCita);
         } catch (e) {
           debugPrint('Error al agregar cita al calendario: $e');
         }
 
         return nuevaCita;
       } else {
-        debugPrint('Error HTTP al crear cita: ${response.statusCode} - ${response.body}');
+        debugPrint(
+            'Error HTTP al crear cita: ${response.statusCode} - ${response.body}');
         return null;
       }
     } catch (e) {
@@ -250,7 +258,7 @@ class CitasService {
         'hora_inicio':
             '${nuevaFechaHora.hour.toString().padLeft(2, '0')}:${nuevaFechaHora.minute.toString().padLeft(2, '0')}',
         'hora_fin':
-            '${(nuevaFechaHora.hour + 1).toString().padLeft(2, '0')}:${nuevaFechaHora.minute.toString().padLeft(2, '0')}',
+            '${nuevaFechaHora.add(const Duration(minutes: 30)).hour.toString().padLeft(2, '0')}:${nuevaFechaHora.add(const Duration(minutes: 30)).minute.toString().padLeft(2, '0')}',
         'motivo_reagendamiento': motivo,
         if (idServicio != null) 'id_servicio': idServicio,
       };
@@ -269,8 +277,10 @@ class CitasService {
         final citaActualizada = Cita.fromJson(citaJson);
 
         // Reprogramar notificaciones
-        await NotificationService().cancelAppointmentNotifications(cita.id.hashCode);
-        await NotificationService().scheduleAdvancedAppointmentNotifications(citaActualizada);
+        await NotificationService()
+            .cancelAppointmentNotifications(cita.id.hashCode);
+        await NotificationService()
+            .scheduleAdvancedAppointmentNotifications(citaActualizada);
 
         // Actualizar integraciones (calendario + notifs)
         try {
@@ -282,7 +292,8 @@ class CitasService {
 
         return citaActualizada;
       } else {
-        debugPrint('Error al reagendar: ${response.statusCode} - ${response.body}');
+        debugPrint(
+            'Error al reagendar: ${response.statusCode} - ${response.body}');
         return null;
       }
     } catch (e) {
@@ -306,7 +317,8 @@ class CitasService {
       );
 
       if (response.statusCode == 200) {
-        await NotificationService().cancelAppointmentNotifications(cita.id.hashCode);
+        await NotificationService()
+            .cancelAppointmentNotifications(cita.id.hashCode);
         try {
           await AppointmentIntegrationService()
               .cancelAppointmentIntegrations(int.tryParse(cita.id) ?? 0);
@@ -315,7 +327,8 @@ class CitasService {
         }
         return true;
       } else {
-        debugPrint('Error al cancelar cita: ${response.statusCode} - ${response.body}');
+        debugPrint(
+            'Error al cancelar cita: ${response.statusCode} - ${response.body}');
         return false;
       }
     } catch (e) {
@@ -340,7 +353,8 @@ class CitasService {
       if (response.statusCode == 200 || response.statusCode == 204) {
         return true;
       } else {
-        debugPrint('Error al eliminar cita: ${response.statusCode} - ${response.body}');
+        debugPrint(
+            'Error al eliminar cita: ${response.statusCode} - ${response.body}');
         return false;
       }
     } catch (e) {
@@ -372,7 +386,8 @@ class CitasService {
           return null;
         }
       } else {
-        debugPrint('Error al obtener cita: ${response.statusCode} - ${response.body}');
+        debugPrint(
+            'Error al obtener cita: ${response.statusCode} - ${response.body}');
         return null;
       }
     } catch (e) {
@@ -440,7 +455,8 @@ class CitasService {
           }).toList();
         }
       } else {
-        debugPrint('Error al obtener horarios disponibles: ${response.statusCode} - ${response.body}');
+        debugPrint(
+            'Error al obtener horarios disponibles: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
       debugPrint('Error al obtener horarios disponibles desde API: $e');
@@ -450,12 +466,22 @@ class CitasService {
       }
     }
 
-    // Fallback a todos los horarios si hay error
+    // Fallback con los horarios correctos: 8:00-12:30 y 14:00-16:30
     final List<TimeOfDay> todosHorarios = [];
-    for (int hora = 8; hora <= 17; hora++) {
+
+    // Bloque mañana
+    for (int hora = 8; hora <= 12; hora++) {
+      todosHorarios.add(TimeOfDay(hour: hora, minute: 0));
+      if (hora < 12) {
+        todosHorarios.add(TimeOfDay(hour: hora, minute: 30));
+      }
+    }
+    // Bloque tarde
+    for (int hora = 14; hora <= 16; hora++) {
       todosHorarios.add(TimeOfDay(hour: hora, minute: 0));
       todosHorarios.add(TimeOfDay(hour: hora, minute: 30));
     }
+
     return todosHorarios;
   }
 
@@ -469,11 +495,16 @@ class CitasService {
   Future<Map<EstadoCita, int>> obtenerEstadisticas() async {
     final citas = await obtenerCitas();
     return {
-      EstadoCita.solicitada: citas.where((c) => c.estado == EstadoCita.solicitada).length,
-      EstadoCita.confirmada: citas.where((c) => c.estado == EstadoCita.confirmada).length,
-      EstadoCita.cancelada: citas.where((c) => c.estado == EstadoCita.cancelada).length,
-      EstadoCita.completada: citas.where((c) => c.estado == EstadoCita.completada).length,
-      EstadoCita.reprogramada: citas.where((c) => c.estado == EstadoCita.reprogramada).length,
+      EstadoCita.solicitada:
+          citas.where((c) => c.estado == EstadoCita.solicitada).length,
+      EstadoCita.confirmada:
+          citas.where((c) => c.estado == EstadoCita.confirmada).length,
+      EstadoCita.cancelada:
+          citas.where((c) => c.estado == EstadoCita.cancelada).length,
+      EstadoCita.completada:
+          citas.where((c) => c.estado == EstadoCita.completada).length,
+      EstadoCita.reprogramada:
+          citas.where((c) => c.estado == EstadoCita.reprogramada).length,
     };
   }
 
@@ -501,7 +532,8 @@ class CitasService {
       final prefs = await SharedPreferences.getInstance();
       final citasJson = citas.map((cita) => cita.toJson()).toList();
       await prefs.setString('cached_citas', json.encode(citasJson));
-      await prefs.setString('cache_timestamp', DateTime.now().toIso8601String());
+      await prefs.setString(
+          'cache_timestamp', DateTime.now().toIso8601String());
     } catch (e) {
       debugPrint('Error al guardar citas en cache: $e');
     }

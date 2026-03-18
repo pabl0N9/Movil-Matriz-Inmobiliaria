@@ -23,7 +23,8 @@ class VerCitaDialog extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildSeccion('Informacion Personal', [
-                      _buildInfoRow(Icons.person, 'Nombre', cita.nombreCompleto),
+                      _buildInfoRow(
+                          Icons.person, 'Nombre', cita.nombreCompleto),
                       _buildInfoRow(Icons.phone, 'Telefono', cita.telefono),
                       _buildInfoRow(Icons.email, 'Correo', cita.correo),
                       _buildInfoRow(
@@ -31,8 +32,10 @@ class VerCitaDialog extends StatelessWidget {
                         'Documento',
                         '${cita.tipoDocumentoTexto}: ${cita.numeroDocumento}',
                       ),
-                      if (cita.agenteNombre != null && cita.agenteNombre!.isNotEmpty)
-                        _buildInfoRow(Icons.person_pin, 'Agente', cita.agenteNombre!),
+                      if (cita.agenteNombre != null &&
+                          cita.agenteNombre!.isNotEmpty)
+                        _buildInfoRow(
+                            Icons.person_pin, 'Agente', cita.agenteNombre!),
                     ]),
                     const SizedBox(height: 20),
                     _buildSeccion('Fecha y Hora', [
@@ -44,7 +47,7 @@ class VerCitaDialog extends StatelessWidget {
                       _buildInfoRow(
                         Icons.access_time,
                         'Hora',
-                        DateFormat('HH:mm').format(cita.fechaHora),
+                        DateFormat('h:mm a').format(cita.fechaHora),
                       ),
                     ]),
                     const SizedBox(height: 20),
@@ -54,15 +57,18 @@ class VerCitaDialog extends StatelessWidget {
                         'Servicio',
                         cita.servicioNombre ?? cita.servicio,
                       ),
-                      if (cita.inmuebleDireccion != null && cita.inmuebleDireccion!.isNotEmpty)
-                        _buildInfoRow(Icons.location_on, 'Direccion', cita.inmuebleDireccion!),
+                      if (cita.inmuebleDireccion != null &&
+                          cita.inmuebleDireccion!.isNotEmpty)
+                        _buildInfoRow(Icons.location_on, 'Direccion',
+                            cita.inmuebleDireccion!),
                       if (cita.detalles.isNotEmpty)
                         _buildInfoRow(Icons.notes, 'Detalles', cita.detalles),
                     ]),
                     const SizedBox(height: 20),
                     _buildSeccion('Estado', [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
                         decoration: BoxDecoration(
                           color: cita.estadoColor.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
@@ -96,7 +102,8 @@ class VerCitaDialog extends StatelessWidget {
                       _buildInfoRow(
                         Icons.access_time_filled,
                         'Creada el',
-                        DateFormat('dd/MM/yyyy HH:mm').format(cita.fechaCreacion),
+                        DateFormat('dd/MM/yyyy HH:mm')
+                            .format(cita.fechaCreacion),
                       ),
                       _buildInfoRow(Icons.fingerprint, 'ID', cita.id),
                     ]),

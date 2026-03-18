@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../services/auth_service.dart';
+import '../../models/user_model.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -53,11 +56,54 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
       _textController.forward();
     });
 
-    // Espera 4 segundos y luego navega a la página principal
-    Future.delayed(const Duration(seconds: 4), () {
-      if (!mounted) return;
+    // Iniciar la verificación de sesión
+    _checkAuthAndNavigate();
+  }
+
+  Future<void> _checkAuthAndNavigate() async {
+    // Iniciar temporizador mínimo para mostrar la animación
+    final minDelay = Future.delayed(const Duration(seconds: 4));
+
+    bool isValid = false;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+
+      if (token != null && token.isNotEmpty) {
+        // Verificar validez del token
+        final result = await AuthService.verifyToken(token);
+
+        if (result['success'] == true) {
+          isValid = true;
+          if (result['user'] != null) {
+            final userJson = (result['user'] as User).toJsonString();
+            await prefs.setString('current_user', userJson);
+          }
+        } else if (result['message'] != null &&
+            result['message'].toString().contains('conexion')) {
+          // Confiar en sesión local si hay problema de red pero el token existe
+          isValid = true;
+        } else {
+          // Token expirado o inválido, limpiar datos
+          await prefs.remove('auth_token');
+          await prefs.remove('current_user');
+          await prefs.remove('refresh_token');
+        }
+      }
+    } catch (e) {
+      debugPrint('Error verificando auth en splash: $e');
+    }
+
+    // Esperar a que complete el delay mínimo
+    await minDelay;
+
+    if (!mounted) return;
+
+    if (isValid) {
+      Navigator.pushReplacementNamed(context, '/home');
+    } else {
       Navigator.pushReplacementNamed(context, '/login');
-    });
+    }
   }
 
   @override

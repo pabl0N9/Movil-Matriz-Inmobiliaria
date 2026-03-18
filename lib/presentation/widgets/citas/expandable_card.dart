@@ -23,7 +23,8 @@ class ExpandableAppointmentCard extends StatefulWidget {
   });
 
   @override
-  State<ExpandableAppointmentCard> createState() => _ExpandableAppointmentCardState();
+  State<ExpandableAppointmentCard> createState() =>
+      _ExpandableAppointmentCardState();
 }
 
 class _ExpandableAppointmentCardState extends State<ExpandableAppointmentCard>
@@ -116,7 +117,9 @@ class _ExpandableAppointmentCardState extends State<ExpandableAppointmentCard>
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isVeryClose ? Colors.red.withOpacity(0.5) : widget.cita.estadoColor.withOpacity(0.3),
+          color: isVeryClose
+              ? Colors.red.withOpacity(0.5)
+              : widget.cita.estadoColor.withOpacity(0.3),
           width: isVeryClose ? 3 : 2,
         ),
         boxShadow: [
@@ -157,7 +160,8 @@ class _ExpandableAppointmentCardState extends State<ExpandableAppointmentCard>
                 children: [
                   // Status badge
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: widget.cita.estadoColor,
                       borderRadius: BorderRadius.circular(12),
@@ -181,10 +185,12 @@ class _ExpandableAppointmentCardState extends State<ExpandableAppointmentCard>
                       .animate()
                       .scale(duration: 300.ms, curve: Curves.elasticOut)
                       .fadeIn(duration: 200.ms),
-                  if (widget.showEdits && widget.cita.edicionesMaximas != null) ...[
+                  if (widget.showEdits &&
+                      widget.cita.edicionesMaximas != null) ...[
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade100,
                         borderRadius: BorderRadius.circular(12),
@@ -207,7 +213,7 @@ class _ExpandableAppointmentCardState extends State<ExpandableAppointmentCard>
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            DateFormat('HH:mm').format(widget.cita.fechaHora),
+                            DateFormat('h:mm a').format(widget.cita.fechaHora),
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
@@ -215,7 +221,8 @@ class _ExpandableAppointmentCardState extends State<ExpandableAppointmentCard>
                             ),
                           ),
                           Text(
-                            DateFormat('dd MMM yyyy', 'es').format(widget.cita.fechaHora),
+                            DateFormat('dd MMM yyyy', 'es')
+                                .format(widget.cita.fechaHora),
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.normal,
@@ -256,27 +263,32 @@ class _ExpandableAppointmentCardState extends State<ExpandableAppointmentCard>
               // Service info
               Row(
                 children: [
-                  const Icon(Icons.medical_services, size: 14, color: Colors.black54),
+                  const Icon(Icons.medical_services,
+                      size: 14, color: Colors.black54),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       widget.cita.servicioNombre ?? widget.cita.servicio,
-                      style: const TextStyle(fontSize: 13, color: Colors.black54),
+                      style:
+                          const TextStyle(fontSize: 13, color: Colors.black54),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
-              if (widget.cita.inmuebleDireccion != null && widget.cita.inmuebleDireccion!.isNotEmpty) ...[
+              if (widget.cita.inmuebleDireccion != null &&
+                  widget.cita.inmuebleDireccion!.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Icon(Icons.location_on, size: 14, color: Colors.black54),
+                    const Icon(Icons.location_on,
+                        size: 14, color: Colors.black54),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         widget.cita.inmuebleDireccion!,
-                        style: const TextStyle(fontSize: 13, color: Colors.black54),
+                        style: const TextStyle(
+                            fontSize: 13, color: Colors.black54),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -316,23 +328,27 @@ class _ExpandableAppointmentCardState extends State<ExpandableAppointmentCard>
                               const SizedBox(height: 8),
                               Row(
                                 children: [
-                                  const Icon(Icons.phone, size: 16, color: Colors.black54),
+                                  const Icon(Icons.phone,
+                                      size: 16, color: Colors.black54),
                                   const SizedBox(width: 8),
                                   Text(
                                     widget.cita.telefono,
-                                    style: const TextStyle(fontSize: 14, color: Colors.black87),
+                                    style: const TextStyle(
+                                        fontSize: 14, color: Colors.black87),
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 4),
                               Row(
                                 children: [
-                                  const Icon(Icons.email, size: 16, color: Colors.black54),
+                                  const Icon(Icons.email,
+                                      size: 16, color: Colors.black54),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
                                       widget.cita.correo,
-                                      style: const TextStyle(fontSize: 14, color: Colors.black87),
+                                      style: const TextStyle(
+                                          fontSize: 14, color: Colors.black87),
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
@@ -341,11 +357,13 @@ class _ExpandableAppointmentCardState extends State<ExpandableAppointmentCard>
                               const SizedBox(height: 4),
                               Row(
                                 children: [
-                                  const Icon(Icons.badge, size: 16, color: Colors.black54),
+                                  const Icon(Icons.badge,
+                                      size: 16, color: Colors.black54),
                                   const SizedBox(width: 8),
                                   Text(
                                     '${widget.cita.tipoDocumento.name.toUpperCase()} ${widget.cita.numeroDocumento}',
-                                    style: const TextStyle(fontSize: 14, color: Colors.black87),
+                                    style: const TextStyle(
+                                        fontSize: 14, color: Colors.black87),
                                   ),
                                 ],
                               ),
@@ -461,7 +479,8 @@ class _ExpandableAppointmentCardState extends State<ExpandableAppointmentCard>
                       color: const Color(0xFF9C27B0),
                     )
                         .animate(
-                          onPlay: (controller) => isVeryClose ? controller.repeat() : null,
+                          onPlay: (controller) =>
+                              isVeryClose ? controller.repeat() : null,
                         )
                         .scale(
                           begin: const Offset(1, 1),
@@ -475,10 +494,11 @@ class _ExpandableAppointmentCardState extends State<ExpandableAppointmentCard>
                           end: const Offset(1, 1),
                           duration: 800.ms,
                           curve: Curves.easeInOut,
-                      ),
+                        ),
                     color: const Color(0xFF9C27B0),
                     onPressed: () async {
-                      final success = await CalendarService().addAppointmentToCalendar(widget.cita);
+                      final success = await CalendarService()
+                          .addAppointmentToCalendar(widget.cita);
                       if (success && context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -493,7 +513,8 @@ class _ExpandableAppointmentCardState extends State<ExpandableAppointmentCard>
                     constraints: const BoxConstraints(),
                   )
                       .animate()
-                      .slideY(begin: 0.2, end: 0, duration: 400.ms, delay: 300.ms)
+                      .slideY(
+                          begin: 0.2, end: 0, duration: 400.ms, delay: 300.ms)
                       .fadeIn(duration: 400.ms, delay: 300.ms),
                   const SizedBox(width: 12),
                   IconButton(
@@ -505,7 +526,8 @@ class _ExpandableAppointmentCardState extends State<ExpandableAppointmentCard>
                     constraints: const BoxConstraints(),
                   )
                       .animate()
-                      .slideY(begin: 0.2, end: 0, duration: 450.ms, delay: 350.ms)
+                      .slideY(
+                          begin: 0.2, end: 0, duration: 450.ms, delay: 350.ms)
                       .fadeIn(duration: 450.ms, delay: 350.ms),
                   const SizedBox(width: 12),
                   IconButton(
@@ -517,7 +539,8 @@ class _ExpandableAppointmentCardState extends State<ExpandableAppointmentCard>
                     constraints: const BoxConstraints(),
                   )
                       .animate()
-                      .slideY(begin: 0.2, end: 0, duration: 500.ms, delay: 400.ms)
+                      .slideY(
+                          begin: 0.2, end: 0, duration: 500.ms, delay: 400.ms)
                       .fadeIn(duration: 500.ms, delay: 400.ms),
                   const SizedBox(width: 12),
                   IconButton(
@@ -529,7 +552,8 @@ class _ExpandableAppointmentCardState extends State<ExpandableAppointmentCard>
                     constraints: const BoxConstraints(),
                   )
                       .animate()
-                      .slideY(begin: 0.2, end: 0, duration: 550.ms, delay: 450.ms)
+                      .slideY(
+                          begin: 0.2, end: 0, duration: 550.ms, delay: 450.ms)
                       .fadeIn(duration: 550.ms, delay: 450.ms),
                 ],
               ),
@@ -541,7 +565,11 @@ class _ExpandableAppointmentCardState extends State<ExpandableAppointmentCard>
         .animate()
         .fadeIn(duration: 400.ms)
         .slideY(begin: 0.1, end: 0, duration: 400.ms, curve: Curves.easeOut)
-        .scale(begin: const Offset(0.95, 0.95), end: const Offset(1, 1), duration: 300.ms, curve: Curves.easeOut);
+        .scale(
+            begin: const Offset(0.95, 0.95),
+            end: const Offset(1, 1),
+            duration: 300.ms,
+            curve: Curves.easeOut);
   }
 
   String _getTimeMessage() {
@@ -567,8 +595,3 @@ class _ExpandableAppointmentCardState extends State<ExpandableAppointmentCard>
     }
   }
 }
-
-
-
-
-

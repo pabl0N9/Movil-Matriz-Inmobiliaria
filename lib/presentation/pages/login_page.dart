@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'register_page.dart';
+import 'package:animate_do/animate_do.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_model.dart';
 import '../widgets/citas/alertas_modernas.dart';
-// ⚠️ ELIMINAMOS la importación de home_page.dart.
-// import 'home_page.dart';
-// ✅ En su lugar, usaremos el nombre de la ruta '/home' que apunta a MainScreen.
-
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -19,6 +15,8 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _isPasswordVisible = false;
+  bool _isLoading = false;
 
   Future<void> _login() async {
     final email = _emailController.text.trim();
@@ -26,24 +24,21 @@ class _LoginPageState extends State<LoginPage> {
 
     if (email.isEmpty || password.isEmpty) {
       context.showModernToast(
-        message: "Debes llenar todos los campos",
+        message: "Por favor, completa todos los campos para continuar.",
         type: AlertType.error,
+        position: AlertPosition.top,
       );
       return;
     }
 
-    // Mostrar indicador de carga
-    setState(() {});
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
-      print('🔐 Intentando login con: $email');
       final result = await AuthService.login(email, password);
-      print('📋 Resultado del login: $result');
 
       if (result['success'] == true) {
-        print('✅ Login exitoso, guardando datos...');
-
-        // Guardar datos de autenticación
         final prefs = await SharedPreferences.getInstance();
         final user = result['user'] as User;
         final token = result['token'] as String;
@@ -52,41 +47,38 @@ class _LoginPageState extends State<LoginPage> {
         await prefs.setString('current_user', user.toJsonString());
         await prefs.setString('refresh_token', result['refreshToken'] ?? '');
 
-        print('💾 Datos guardados en SharedPreferences');
-        print('👤 Usuario: ${user.email}');
-        print('🔑 Token guardado');
-
-        context.showModernSuccess(
-          message: "¡Bienvenido de vuelta!",
-          onComplete: () {
-            print('🏠 Navegando a /home...');
-            // ✅ CAMBIO CLAVE: Navegar a la ruta '/home' definida en main.dart.
-            // Esta ruta carga el widget MainScreen, que incluye el Header y el Menú.
-            if (mounted) {
+        if (mounted) {
+          context.showModernSuccess(
+            message: "¡Acceso concedido! Bienvenido al sistema.",
+            onComplete: () {
               Navigator.of(context).pushReplacementNamed('/home');
-              print('✅ Navegación completada');
-            } else {
-              print('❌ Widget no está mounted');
-            }
-          },
-        );
+            },
+          );
+        }
       } else {
-        print('⚠️ Login fallido: ${result['message']}');
-        context.showModernToast(
-          message: result['message'] ?? 'Error desconocido',
-          type: AlertType.warning,
-        );
+        if (mounted) {
+          context.showModernToast(
+            message:
+                "Las credenciales ingresadas no son válidas. Intenta de nuevo.",
+            type: AlertType.error,
+            position: AlertPosition.top,
+          );
+        }
       }
     } catch (e) {
-      print('❌ Error en login: $e');
-      context.showModernToast(
-        message: "Error de conexión. Inténtalo de nuevo.",
-        type: AlertType.error,
-      );
-    } finally {
-      // Ocultar indicador de carga
       if (mounted) {
-        setState(() {});
+        context.showModernToast(
+          message:
+              "No se pudo establecer conexión con el servidor. Verifica tu red.",
+          type: AlertType.error,
+          position: AlertPosition.top,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
@@ -94,203 +86,243 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Stack(
-          children: [
-            // 🔹 Contenido principal en columna
-            Column(
+      backgroundColor: const Color(0xFF003366),
+      body: Stack(
+        children: [
+          // Fondo con imagen y overlay dinámico
+          Positioned.fill(
+            child: Image.asset(
+              "assets/images/casa2.jpg",
+              fit: BoxFit.cover,
+            ),
+          ),
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    const Color(0xFF003366).withOpacity(0.85),
+                    const Color(0xFF003366).withOpacity(0.4),
+                    Colors.black.withOpacity(0.8),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Contenido principal
+          SafeArea(
+            child: Column(
               children: [
-                // Encabezado azul con logo centrado
-                Container(
-                  width: double.infinity,
-                  color: const Color(0xFF003366),
-                  padding: const EdgeInsets.symmetric(vertical: 20),
+                const SizedBox(height: 50),
+                // Logo con animación elegante
+                FadeInDown(
+                  duration: const Duration(milliseconds: 1000),
                   child: Center(
                     child: Image.asset(
                       "assets/images/LogoSinFondo.png",
-                      height: 60,
+                      height: 90,
                     ),
                   ),
                 ),
+                const Spacer(),
 
-                // Contenedor blanco con borde redondeado
-                Expanded(
+                // Panel de login Premium
+                FadeInUp(
+                  duration: const Duration(milliseconds: 1000),
                   child: Container(
-                    margin: const EdgeInsets.all(15),
-                    decoration: BoxDecoration(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 30, vertical: 45),
+                    decoration: const BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(5),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(40),
+                        topRight: Radius.circular(40),
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 6,
-                          offset: const Offset(0, 3),
+                          color: Colors.black45,
+                          blurRadius: 25,
+                          offset: Offset(0, -10),
                         ),
                       ],
                     ),
                     child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(20),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: MediaQuery.of(context).size.height * 0.6,
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            const SizedBox(height: 10),
-
-                            const Text(
-                              "Iniciar sesión",
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Center(
+                            child: Text(
+                              "MATRIZ INMOBILIARIA",
                               style: TextStyle(
-                                fontSize: 18,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.grey,
+                                letterSpacing: 2.0,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          const Center(
+                            child: Text(
+                              "Bienvenido de nuevo",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 34,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF003366),
+                                height: 1.1,
                               ),
                             ),
-                            const SizedBox(height: 30),
-
-                            // Campo correo
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  "Correo electrónico",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                TextField(
-                                  controller: _emailController,
-                                  decoration: InputDecoration(
-                                    hintText: "Ingresa tu correo",
-                                    prefixIcon:
-                                        const Icon(Icons.email_outlined),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 20),
-                              ],
+                          ),
+                          const SizedBox(height: 12),
+                          Center(
+                            child: Text(
+                              "Ingresa tus credenciales para acceder al panel de gestión.",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: Colors.grey[600],
+                                height: 1.5,
+                              ),
                             ),
+                          ),
+                          const SizedBox(height: 40),
 
-                            // Campo contraseña
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  "Contraseña",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                TextField(
-                                  controller: _passwordController,
-                                  obscureText: true,
-                                  decoration: InputDecoration(
-                                    hintText: "Ingresa tu contraseña",
-                                    prefixIcon:
-                                        const Icon(Icons.lock_outline),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                              ],
-                            ),
+                          // Campo Correo
+                          _buildLabel("Correo electrónico"),
+                          const SizedBox(height: 10),
+                          _buildTextField(
+                            controller: _emailController,
+                            hint: "Escribe tu correo aquí",
+                            icon: Icons.alternate_email_outlined,
+                          ),
+                          const SizedBox(height: 25),
 
-                            // Checkbox con mejor layout
-                            Container(
-                              width: double.infinity,
-                              margin: const EdgeInsets.symmetric(vertical: 10),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Checkbox(
-                                    value: false,
-                                    onChanged: (value) {},
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(5),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: Text(
-                                      "Recordar sesión",
+                          // Campo Contraseña
+                          _buildLabel("Contraseña"),
+                          const SizedBox(height: 10),
+                          _buildTextField(
+                            controller: _passwordController,
+                            hint: "Tu clave de acceso",
+                            icon: Icons.lock_open_outlined,
+                            isPassword: true,
+                            obscureText: !_isPasswordVisible,
+                            togglePassword: () {
+                              setState(() {
+                                _isPasswordVisible = !_isPasswordVisible;
+                              });
+                            },
+                          ),
+                          const SizedBox(height: 45),
+
+                          // Botón de Acción Principal
+                          SizedBox(
+                            width: double.infinity,
+                            height: 65,
+                            child: ElevatedButton(
+                              onPressed: _isLoading ? null : _login,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF003366),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                elevation: 10,
+                                shadowColor:
+                                    const Color(0xFF003366).withOpacity(0.4),
+                              ),
+                              child: _isLoading
+                                  ? const CircularProgressIndicator(
+                                      color: Colors.white)
+                                  : const Text(
+                                      "Iniciar sesión ahora",
                                       style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey[700],
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.1,
                                       ),
-                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                  ),
-                                ],
-                              ),
                             ),
-
-                            const SizedBox(height: 20),
-
-                            // Botón login
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF003366),
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 15),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                                onPressed: _login,
-                                child: const Text(
-                                  "Iniciar sesión",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 15),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
                       ),
                     ),
                   ),
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
 
-            // 🔹 Botón Registrar flotante arriba a la derecha
-            Positioned(
-              top: 10,
-              right: 15,
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const RegisterPage(),
-                    ),
-                  );
-                },
-                child: const Text(
-                  "Registrar",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+  Widget _buildLabel(String text) {
+    return Text(
+      text.toUpperCase(),
+      style: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w900,
+        color: Color(0xFF003366),
+        letterSpacing: 1.2,
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    bool isPassword = false,
+    bool obscureText = false,
+    VoidCallback? togglePassword,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F7FA),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.grey[200]!, width: 1.5),
+      ),
+      child: TextField(
+        controller: controller,
+        obscureText: obscureText,
+        style: const TextStyle(fontSize: 16, color: Colors.black),
+        cursorColor: const Color(0xFF003366),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(color: Colors.grey[400], fontSize: 15),
+          prefixIcon: Icon(icon, color: const Color(0xFF003366), size: 22),
+          suffixIcon: isPassword
+              ? IconButton(
+                  icon: Icon(
+                    obscureText
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                    color: Colors.grey[500],
+                    size: 20,
                   ),
-                ),
-              ),
-            ),
-          ],
+                  onPressed: togglePassword,
+                )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: const BorderSide(color: Color(0xFF003366), width: 2),
+          ),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
         ),
       ),
     );

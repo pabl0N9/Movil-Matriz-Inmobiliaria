@@ -6,7 +6,8 @@ import '../models/user_model.dart';
 
 class AuthService {
   // Para Flutter Web, usar la IP del host local en lugar de localhost
-  static const String baseUrl = 'http://localhost:5000/api/v1';
+  static const String baseUrl =
+      'https://inmotech-api-develop.onrender.com/api/v1';
 
   static http.Client _client() {
     if (kIsWeb) {
@@ -18,7 +19,8 @@ class AuthService {
   }
 
   // Login
-  static Future<Map<String, dynamic>> login(String email, String password) async {
+  static Future<Map<String, dynamic>> login(
+      String email, String password) async {
     final client = _client();
     try {
       final response = await client.post(
